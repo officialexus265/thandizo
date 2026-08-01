@@ -60,7 +60,7 @@ export async function verifyPayChanguTransaction(txRef: string) {
   const secretKey = process.env.PAYCHANGU_SECRET_KEY;
   if (!secretKey) throw new Error("PAYCHANGU_SECRET_KEY is not set");
 
-  const res = await fetch(`${PAYCHANGU_API}/transaction/verify/${txRef}`, {
+  const res = await fetch(`${PAYCHANGU_API}/verify-payment/${txRef}`, {
     method: "GET",
     headers: {
       Accept: "application/json",
@@ -69,5 +69,6 @@ export async function verifyPayChanguTransaction(txRef: string) {
   });
 
   const data = await res.json();
+  console.error("PayChangu verify raw response:", JSON.stringify(data));
   return data;
 }
