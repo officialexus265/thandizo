@@ -1,10 +1,13 @@
 import { prisma } from "@/lib/prisma";
 import { formatCurrency } from "@/lib/utils";
+import { expireStalePendingDonations } from "@/lib/donations";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
 export default async function AdminDonationsPage() {
+  await expireStalePendingDonations();
+
   const donations = await prisma.donation.findMany({
     orderBy: { createdAt: "desc" },
     include: {

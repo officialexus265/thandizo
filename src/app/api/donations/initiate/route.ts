@@ -1,10 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { initiatePayChanguPayment } from "@/lib/paychangu";
+import { expireStalePendingDonations } from "@/lib/donations";
 import { v4 as uuidv4 } from "uuid";
 
 export async function POST(req: NextRequest) {
   try {
+    // Opportunistically clean up old abandoned checkouts on every new attempt
+    await expireStalePendingDonations();
+
     const body = await req.json();
     const {
       projectId,
