@@ -15,12 +15,29 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://thandizo-ten.vercel.app";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: {
     default: "thandizo – Fund Projects That Matter",
     template: "%s | thandizo",
   },
   description: "Transparent project funding platform. Support community projects with full transparency.",
+  openGraph: {
+    title: "thandizo – Fund Projects That Matter",
+    description: "Transparent project funding platform. Support community projects with full transparency.",
+    siteName: "thandizo",
+    url: siteUrl,
+    type: "website",
+    images: [{ url: "/og-image.jpg", width: 1200, height: 630, alt: "thandizo" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "thandizo – Fund Projects That Matter",
+    description: "Transparent project funding platform. Support community projects with full transparency.",
+    images: ["/og-image.jpg"],
+  },
 };
 
 export default function RootLayout({

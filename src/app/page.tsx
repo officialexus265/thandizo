@@ -3,6 +3,7 @@ import ProjectCard from "@/components/ProjectCard";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import PartnerButton from "@/components/PartnerButton";
+import ShareButton from "@/components/ShareButton";
 
 export const dynamic = "force-dynamic";
 
@@ -54,8 +55,14 @@ export default async function HomePage() {
             <p className="mt-3 text-stone-300 max-w-2xl mx-auto">
               Transparent community funding. Every donation is tracked. Every project has a clear target.
             </p>
-            <div className="mt-6">
+            <div className="mt-6 flex items-center justify-center gap-3">
               <PartnerButton variant="primary" className="!bg-red-700 hover:!bg-red-800" />
+              <ShareButton
+                title={settings?.siteName || "thandizo"}
+                text="Transparent community funding. Support projects that matter."
+                url="/"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-stone-500 text-white font-medium hover:bg-stone-800 transition"
+              />
             </div>
           </div>
         </section>

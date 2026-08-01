@@ -6,6 +6,9 @@ import Image from "next/image";
 import Link from "next/link";
 import DonationForm from "@/components/DonationForm";
 import PartnerButton from "@/components/PartnerButton";
+import ShareButton from "@/components/ShareButton";
+import { cache } from "react";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -13,7 +16,7 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-async function getProject(slug: string) {
+const getProject = cache(async (slug: string) => {
   return prisma.project.findUnique({
     where: { slug },
     include: {
@@ -25,10 +28,38 @@ async function getProject(slug: string) {
       },
     },
   });
-}
+});
 
 async function getSettings() {
   return prisma.siteSettings.findUnique({ where: { id: "default" } });
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const project = await getProject(slug);
+
+  if (!project) return {};
+
+  const image = project.thumbnailUrl || project.media[0]?.url;
+
+  return {
+    title: project.title,
+    description: project.shortDesc,
+    openGraph: {
+      title: project.title,
+      description: project.shortDesc,
+      type: "website",
+      images: image
+        ? [{ url: image, width: 1200, height: 630, alt: project.title }]
+        : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: project.title,
+      description: project.shortDesc,
+      images: image ? [image] : undefined,
+    },
+  };
 }
 
 export default async function ProjectPage({ params }: Props) {
@@ -108,6 +139,11 @@ export default async function ProjectPage({ params }: Props) {
           <PartnerButton
             projectId={project.id}
             projectTitle={project.title}
+          />
+          <ShareButton
+            title={project.title}
+            text={project.shortDesc}
+            url={`/project/${project.slug}`}
           />
         </div>
 

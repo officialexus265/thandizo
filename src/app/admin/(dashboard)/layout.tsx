@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import SignOutButton from "@/components/SignOutButton";
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await getServerSession(authOptions);
@@ -31,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <div className="flex items-center gap-4 text-sm">
             <span className="text-stone-400">{session.user?.email}</span>
             <Link href="/" className="hover:text-red-300">View site</Link>
-            <Link href="/api/auth/signout" className="hover:text-red-300">Sign out</Link>
+            <SignOutButton />
           </div>
         </div>
       </header>
