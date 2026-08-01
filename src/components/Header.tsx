@@ -34,6 +34,12 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
           <Link href="/donations" className="hover:text-red-300 transition">
             Donations
           </Link>
+          <Link
+            href="/admin"
+            className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 transition font-medium"
+          >
+            Dashboard
+          </Link>
         </nav>
       </div>
     </header>

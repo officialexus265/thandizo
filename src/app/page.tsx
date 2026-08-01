@@ -95,7 +95,7 @@ export default async function HomePage() {
         </p>
         <p className="mt-1">Inu ndi thandizo lathu</p>
         <p className="mt-2">
-          <Link href="/admin/login" className="hover:text-white transition">
+          <Link href="/admin" className="hover:text-white transition">
             Admin
           </Link>
         </p>
