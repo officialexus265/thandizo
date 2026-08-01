@@ -51,7 +51,7 @@ export default async function AdminProjectsPage() {
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  {formatCurrency(p.raisedAmount, p.currency)} / {formatCurrency(p.targetAmount, p.currency)}
+                  {formatCurrency(Number(p.raisedAmount), p.currency)} / {formatCurrency(Number(p.targetAmount), p.currency)}
                 </td>
                 <td className="px-4 py-3">{p.donorCount}</td>
                 <td className="px-4 py-3">{p.isPinned ? "Yes" : "—"}</td>

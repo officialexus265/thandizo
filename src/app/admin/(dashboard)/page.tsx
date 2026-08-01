@@ -97,7 +97,7 @@ export default async function AdminDashboard() {
                     <span className="text-stone-400"> → {d.project.title}</span>
                   </span>
                   <span className="font-medium text-green-700">
-                    {formatCurrency(d.amount, d.currency)}
+                    {formatCurrency(Number(d.amount), d.currency)}
                   </span>
                 </li>
               ))}
@@ -122,7 +122,7 @@ export default async function AdminDashboard() {
                     {p.title}
                   </Link>
                   <span className="text-stone-500">
-                    {formatCurrency(p.raisedAmount, p.currency)} / {formatCurrency(p.targetAmount, p.currency)}
+                    {formatCurrency(Number(p.raisedAmount), p.currency)} / {formatCurrency(Number(p.targetAmount), p.currency)}
                   </span>
                 </li>
               ))}

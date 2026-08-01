@@ -77,14 +77,14 @@ export default async function ProjectPage({ params }: Props) {
         {/* Stats */}
         <div className="bg-white rounded-xl border border-stone-200 p-5 mb-6">
           <div className="flex justify-between text-sm mb-2">
-            <span className="font-medium">{formatCurrency(project.raisedAmount, project.currency)} raised</span>
+            <span className="font-medium">{formatCurrency(Number(project.raisedAmount), project.currency)} raised</span>
             <span>{progress}%</span>
           </div>
           <div className="progress-bar mb-2">
             <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <div className="flex flex-wrap justify-between text-sm text-stone-600 gap-2">
-            <span>Target: {formatCurrency(project.targetAmount, project.currency)}</span>
+            <span>Target: {formatCurrency(Number(project.targetAmount), project.currency)}</span>
             <span>{project.donorCount} donor{project.donorCount !== 1 ? "s" : ""}</span>
           </div>
         </div>
@@ -123,7 +123,7 @@ export default async function ProjectPage({ params }: Props) {
                     {d.message && <span className="text-stone-500"> – “{d.message}”</span>}
                   </span>
                   <span className="font-medium text-green-700">
-                    {formatCurrency(d.amount, d.currency)}
+                    {formatCurrency(Number(d.amount), d.currency)}
                   </span>
                 </li>
               ))}

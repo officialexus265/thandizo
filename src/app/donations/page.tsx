@@ -58,7 +58,7 @@ export default async function DonationsPage() {
                       </Link>
                     </td>
                     <td className="px-4 py-3 text-right font-medium text-green-700">
-                      {formatCurrency(d.amount, d.currency)}
+                      {formatCurrency(Number(d.amount), d.currency)}
                     </td>
                     <td className="px-4 py-3 text-stone-500">
                       {new Date(d.createdAt).toLocaleDateString("en-GB")}
