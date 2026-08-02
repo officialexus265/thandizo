@@ -34,6 +34,13 @@ async function getSettings() {
   return prisma.siteSettings.findUnique({ where: { id: "default" } });
 }
 
+async function getProjectPartners(projectId: string) {
+  return prisma.partnerInterest.findMany({
+    where: { projectId, isPublic: true },
+    orderBy: { updatedAt: "desc" },
+  });
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const project = await getProject(slug);
@@ -67,6 +74,8 @@ export default async function ProjectPage({ params }: Props) {
   const [project, settings] = await Promise.all([getProject(slug), getSettings()]);
 
   if (!project) notFound();
+
+  const partners = await getProjectPartners(project.id);
 
   const progress = calculateProgress(Number(project.raisedAmount), Number(project.targetAmount));
   const isClosed = project.status === "CLOSED" || project.status === "FUNDED";
@@ -119,6 +128,36 @@ export default async function ProjectPage({ params }: Props) {
             <span>{project.donorCount} donor{project.donorCount !== 1 ? "s" : ""}</span>
           </div>
         </div>
+
+        {/* Sponsored by */}
+        {partners.length > 0 && (
+          <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-stone-600">
+            <span className="font-medium">Sponsored by:</span>
+            {partners.map((p) =>
+              p.websiteUrl ? (
+                <a
+                  key={p.id}
+                  href={p.websiteUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 hover:text-red-700 transition"
+                >
+                  {p.logoUrl && (
+                    <img src={p.logoUrl} alt={p.displayName || p.name} width={20} height={20} className="rounded-full object-cover" />
+                  )}
+                  {p.displayName || p.name}
+                </a>
+              ) : (
+                <span key={p.id} className="inline-flex items-center gap-1.5">
+                  {p.logoUrl && (
+                    <img src={p.logoUrl} alt={p.displayName || p.name} width={20} height={20} className="rounded-full object-cover" />
+                  )}
+                  {p.displayName || p.name}
+                </span>
+              )
+            )}
+          </div>
+        )}
 
         {/* Description */}
         <div className="prose prose-stone max-w-none mb-8">

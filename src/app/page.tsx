@@ -2,6 +2,7 @@ import Header from "@/components/Header";
 import ProjectCard from "@/components/ProjectCard";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import Image from "next/image";
 import PartnerButton from "@/components/PartnerButton";
 import ShareButton from "@/components/ShareButton";
 
@@ -38,8 +39,23 @@ async function getSettings() {
   }
 }
 
+async function getGeneralPartners() {
+  try {
+    return await prisma.partnerInterest.findMany({
+      where: { projectId: null, isPublic: true },
+      orderBy: { updatedAt: "desc" },
+    });
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
-  const [projects, settings] = await Promise.all([getProjects(), getSettings()]);
+  const [projects, settings, partners] = await Promise.all([
+    getProjects(),
+    getSettings(),
+    getGeneralPartners(),
+  ]);
 
   return (
     <>
@@ -94,9 +110,45 @@ export default async function HomePage() {
             </div>
           )}
         </section>
+        {/* Our Partners */}
+        {partners.length > 0 && (
+          <section className="max-w-6xl mx-auto px-4 pb-10">
+            <h2 className="text-center text-sm font-semibold uppercase tracking-wide text-stone-500 mb-4">
+              Our Partners
+            </h2>
+            <div className="flex flex-wrap items-center justify-center gap-6">
+              {partners.map((p) =>
+                p.websiteUrl ? (
+                  <a
+                    key={p.id}
+                    href={p.websiteUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-stone-700 hover:text-red-700 transition"
+                  >
+                    {p.logoUrl && (
+                      <img src={p.logoUrl} alt={p.displayName || p.name} width={32} height={32} className="rounded-full object-cover" />
+                    )}
+                    <span className="font-medium">{p.displayName || p.name}</span>
+                  </a>
+                ) : (
+                  <span key={p.id} className="flex items-center gap-2 text-stone-700">
+                    {p.logoUrl && (
+                      <img src={p.logoUrl} alt={p.displayName || p.name} width={32} height={32} className="rounded-full object-cover" />
+                    )}
+                    <span className="font-medium">{p.displayName || p.name}</span>
+                  </span>
+                )
+              )}
+            </div>
+          </section>
+        )}
       </main>
 
-      <footer className="bg-stone-900 text-stone-400 py-8 px-4 text-center text-sm">
+      <footer
+        className="bg-stone-900 text-stone-400 pt-8 px-4 text-center text-sm"
+        style={{ paddingBottom: "max(3rem, env(safe-area-inset-bottom))" }}
+      >
         <p>
           © {new Date().getFullYear()} {settings?.siteName || "thandizo"}. All rights reserved.
         </p>

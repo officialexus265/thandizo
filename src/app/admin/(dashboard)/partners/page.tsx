@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import PromotePartnerButton from "@/components/PromotePartnerButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +30,7 @@ export default async function PartnersPage() {
               <th className="px-4 py-3">Project</th>
               <th className="px-4 py-3">Message</th>
               <th className="px-4 py-3">Status</th>
+              <th className="px-4 py-3">Public listing</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-stone-100">
@@ -58,6 +60,16 @@ export default async function PartnersPage() {
                   <span className="inline-block px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                     {i.status}
                   </span>
+                </td>
+                <td className="px-4 py-3">
+                  <PromotePartnerButton
+                    id={i.id}
+                    submittedName={i.name}
+                    isPublic={i.isPublic}
+                    displayName={i.displayName}
+                    logoUrl={i.logoUrl}
+                    websiteUrl={i.websiteUrl}
+                  />
                 </td>
               </tr>
             ))}

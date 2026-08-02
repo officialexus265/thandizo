@@ -127,6 +127,10 @@ model PartnerInterest {
   phone       String?
   message     String?  @db.Text
   status      String   @default("NEW") // NEW, CONTACTED, CLOSED
+  isPublic    Boolean  @default(false) // promoted to a public "Sponsored by" listing
+  displayName String?  // public-facing name, may differ from submitted name
+  logoUrl     String?  // public-facing logo/photo
+  websiteUrl  String?  // optional link when publicly displayed
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
