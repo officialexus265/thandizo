@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import DonationForm from "@/components/DonationForm";
+import PaymentSuccessWatcher from "@/components/PaymentSuccessWatcher";
+import { Suspense } from "react";
 import PartnerButton from "@/components/PartnerButton";
 import ShareButton from "@/components/ShareButton";
 import { cache } from "react";
@@ -82,6 +84,9 @@ export default async function ProjectPage({ params }: Props) {
 
   return (
     <>
+      <Suspense fallback={null}>
+        <PaymentSuccessWatcher projectTitle={project.title} />
+      </Suspense>
       <Header logoUrl={settings?.logoUrl} siteName={settings?.siteName || "thandizo"} />
 
       <main className="flex-1 max-w-4xl mx-auto px-4 py-8">

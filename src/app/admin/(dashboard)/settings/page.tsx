@@ -12,6 +12,7 @@ export default function SettingsPage() {
     siteName: "thandizo",
     contactEmail: "",
     logoUrl: "",
+    refundFeePercent: 10,
   });
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function SettingsPage() {
             siteName: data.siteName || "thandizo",
             contactEmail: data.contactEmail || "",
             logoUrl: data.logoUrl || "",
+            refundFeePercent: data.refundFeePercent ?? 10,
           });
         }
       })

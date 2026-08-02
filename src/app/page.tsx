@@ -1,3 +1,5 @@
+import DonorTicker from "@/components/DonorTicker";
+import FadeIn from "@/components/FadeIn";
 import Header from "@/components/Header";
 import ProjectCard from "@/components/ProjectCard";
 import { prisma } from "@/lib/prisma";
@@ -92,7 +94,8 @@ export default async function HomePage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {projects.map((p) => (
+              {projects.map((p, i) => (
+                <FadeIn key={p.id} delay={Math.min(i * 0.06, 0.24)}>
                 <ProjectCard
                   key={p.id}
                   id={p.id}
@@ -128,6 +131,7 @@ export default async function HomePage() {
                   >
                     {p.logoUrl && (
                       <img src={p.logoUrl} alt={p.displayName || p.name} width={32} height={32} className="rounded-full object-cover" />
+                    </FadeIn>
                     )}
                     <span className="font-medium">{p.displayName || p.name}</span>
                   </a>
@@ -159,6 +163,7 @@ export default async function HomePage() {
           </Link>
         </p>
       </footer>
+      <DonorTicker />
     </>
   );
 }

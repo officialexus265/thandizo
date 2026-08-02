@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
       email,
       phone,
       preferredContact,
+      fundMode,
       message,
     } = body;
 
@@ -43,6 +44,7 @@ export async function POST(req: NextRequest) {
         email: email || null,
         phone: phone || null,
         preferredContact: preferredContact || "NONE",
+        fundMode: fundMode === "DIRECT" ? "DIRECT" : "HOLD",
         message: message || null,
         txRef,
         status: "PENDING",

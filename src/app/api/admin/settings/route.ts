@@ -17,18 +17,24 @@ export async function PUT(req: NextRequest) {
 
   try {
     const body = await req.json();
+    let fee = body.refundFeePercent != null ? Number(body.refundFeePercent) : 10;
+    if (isNaN(fee) || fee < 0) fee = 0;
+    if (fee > 50) fee = 50;
+
     const settings = await prisma.siteSettings.upsert({
       where: { id: "default" },
       update: {
         siteName: body.siteName,
         contactEmail: body.contactEmail,
         logoUrl: body.logoUrl || null,
+        refundFeePercent: fee,
       },
       create: {
         id: "default",
         siteName: body.siteName || "thandizo",
         contactEmail: body.contactEmail || "",
         logoUrl: body.logoUrl || null,
+        refundFeePercent: fee,
       },
     });
     return NextResponse.json(settings);
