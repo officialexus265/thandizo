@@ -101,6 +101,7 @@ export default async function HomePage() {
                   id={p.id}
                   title={p.title}
                   slug={p.slug}
+                  developerName={p.developerName}
                   shortDesc={p.shortDesc}
                   targetAmount={Number(p.targetAmount)}
                   raisedAmount={Number(p.raisedAmount)}

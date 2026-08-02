@@ -33,6 +33,7 @@ export async function PUT(
     const body = await req.json();
     const {
       title,
+      developerName,
       shortDesc,
       fullDesc,
       targetAmount,
@@ -48,6 +49,7 @@ export async function PUT(
       data.title = title;
       data.slug = slugify(title, { lower: true, strict: true });
     }
+    if (developerName !== undefined) data.developerName = developerName || null;
     if (shortDesc !== undefined) data.shortDesc = shortDesc;
     if (fullDesc !== undefined) data.fullDesc = fullDesc;
     if (targetAmount !== undefined) data.targetAmount = targetAmount;

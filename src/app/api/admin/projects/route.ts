@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, shortDesc, fullDesc, targetAmount, currency, status, isPinned, slug: providedSlug } = body;
+    const { title, developerName, shortDesc, fullDesc, targetAmount, currency, status, isPinned, slug: providedSlug } = body;
 
     if (!title || !shortDesc || !fullDesc || !targetAmount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -29,6 +29,7 @@ export async function POST(req: NextRequest) {
     const project = await prisma.project.create({
       data: {
         title,
+        developerName: developerName || null,
         slug,
         shortDesc,
         fullDesc,

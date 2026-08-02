@@ -36,7 +36,7 @@ export default async function AdminProjectsPage() {
           <tbody className="divide-y divide-stone-100">
             {projects.map((p) => (
               <tr key={p.id} className="hover:bg-stone-50">
-                <td className="px-4 py-3 font-medium">{p.title}</td>
+                <td className="px-4 py-3 font-medium">{p.title}{p.developerName ? ` · ${p.developerName}` : ""}</td>
                 <td className="px-4 py-3">
                   <span
                     className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${

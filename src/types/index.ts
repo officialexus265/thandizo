@@ -12,6 +12,7 @@ export interface ProjectCardProps {
   id: string;
   title: string;
   slug: string;
+  developerName?: string | null;
   shortDesc: string;
   targetAmount: number;
   raisedAmount: number;

@@ -9,6 +9,7 @@ interface ProjectCardProps {
   id: string;
   title: string;
   slug: string;
+  developerName?: string | null;
   shortDesc: string;
   targetAmount: number | string;
   raisedAmount: number | string;
@@ -21,6 +22,7 @@ interface ProjectCardProps {
 export default function ProjectCard({
   title,
   slug,
+  developerName,
   shortDesc,
   targetAmount,
   raisedAmount,
@@ -69,6 +71,11 @@ export default function ProjectCard({
           </h2>
         </Link>
 
+        {developerName && (
+          <p className="mt-0.5 text-xs text-stone-500">
+            by <span className="font-medium text-stone-700">{developerName}</span>
+          </p>
+        )}
         <p className="mt-1 text-sm text-stone-600 line-clamp-2 flex-1">{shortDesc}</p>
 
         {/* Progress */}

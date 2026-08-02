@@ -53,6 +53,7 @@ export default function AdminNav({ email }: { email?: string | null }) {
   const [openGroup, setOpenGroup] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [q, setQ] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
   const groupRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -62,6 +63,15 @@ export default function AdminNav({ email }: { email?: string | null }) {
     setOpenGroup(null);
     setProfileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.logoUrl) setLogoUrl(data.logoUrl);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     function onResize() {
@@ -243,10 +253,15 @@ export default function AdminNav({ email }: { email?: string | null }) {
               aria-expanded={profileOpen}
               aria-haspopup="true"
               onClick={() => setProfileOpen((v) => !v)}
-              className="w-9 h-9 rounded-full bg-red-700 flex items-center justify-center text-sm font-semibold hover:ring-2 hover:ring-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition"
+              className="w-9 h-9 rounded-full bg-red-700 overflow-hidden flex items-center justify-center text-sm font-semibold hover:ring-2 hover:ring-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 transition"
               title={email || "Admin"}
             >
-              {avatar}
+              {logoUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+              ) : (
+                avatar
+              )}
             </button>
             <AnimatePresence>
               {profileOpen && (
@@ -348,10 +363,15 @@ export default function AdminNav({ email }: { email?: string | null }) {
 
               <div className="px-4 py-3 flex items-center gap-3 border-b border-stone-800">
                 <div
-                  className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center text-sm font-semibold"
+                  className="w-10 h-10 rounded-full bg-red-700 overflow-hidden flex items-center justify-center text-sm font-semibold"
                   aria-hidden="true"
                 >
-                  {avatar}
+                  {logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    avatar
+                  )}
                 </div>
                 <span className="text-sm text-stone-400">Account</span>
               </div>

@@ -11,6 +11,7 @@ interface ProjectHit {
   id: string;
   title: string;
   slug: string;
+  developerName?: string | null;
   shortDesc: string;
   thumbnailUrl: string | null;
   status: string;
@@ -126,6 +127,9 @@ function SearchResults() {
                       </div>
                       <div className="min-w-0">
                         <p className="font-medium text-stone-900 truncate">{p.title}</p>
+                        {p.developerName && (
+                          <p className="text-xs text-stone-500">by {p.developerName}</p>
+                        )}
                         <p className="text-xs text-stone-500 line-clamp-2 mt-0.5">{p.shortDesc}</p>
                         <p className="text-xs text-green-700 mt-1">
                           {formatCurrency(Number(p.raisedAmount), p.currency)} raised

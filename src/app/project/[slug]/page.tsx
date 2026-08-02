@@ -94,6 +94,11 @@ export default async function ProjectPage({ params }: Props) {
         <div className="mb-6">
           <div className="flex items-center gap-3 mb-2">
             <h1 className="text-2xl md:text-3xl font-bold text-stone-900">{project.title}</h1>
+            {project.developerName && (
+              <p className="mt-1 text-sm text-stone-500">
+                by <span className="font-medium text-stone-700">{project.developerName}</span>
+              </p>
+            )}
             {project.status === "FUNDED" && (
               <span className="bg-green-700 text-white text-xs font-medium px-2 py-1 rounded">Funded</span>
             )}
