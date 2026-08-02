@@ -17,12 +17,29 @@ const links = [
   { href: "/search", label: "Search" },
 ];
 
-export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) {
+export default function Header({ logoUrl: logoProp, siteName: nameProp }: HeaderProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
-  const menuRef = useRef<HTMLElement>(null);
+  const [logoUrl, setLogoUrl] = useState<string | null>(logoProp ?? null);
+  const [siteName, setSiteName] = useState(nameProp || "thandizo");
   const buttonRef = useRef<HTMLButtonElement>(null);
+
+  // If parent didn't pass logo (e.g. client-only search page), load from API
+  useEffect(() => {
+    if (logoProp) {
+      setLogoUrl(logoProp);
+      if (nameProp) setSiteName(nameProp);
+      return;
+    }
+    fetch("/api/public/settings")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.logoUrl) setLogoUrl(data.logoUrl);
+        if (data?.siteName) setSiteName(data.siteName);
+      })
+      .catch(() => {});
+  }, [logoProp, nameProp]);
 
   useEffect(() => {
     function onResize() {
@@ -39,7 +56,6 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
     };
   }, [open]);
 
-  // Escape closes menu; restore focus to button
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape" && open) {
@@ -77,7 +93,7 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
             />
           ) : (
             <div className="w-10 h-10 rounded-full bg-red-700 flex items-center justify-center font-bold text-lg shrink-0">
-              T
+              {siteName.charAt(0).toUpperCase()}
             </div>
           )}
           <span className="text-lg sm:text-xl font-semibold tracking-tight truncate">
@@ -85,7 +101,6 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
           </span>
         </Link>
 
-        {/* Desktop search */}
         <form
           role="search"
           onSubmit={onSearch}
@@ -164,7 +179,6 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
             />
             <motion.nav
               id="mobile-menu"
-              ref={menuRef}
               aria-label="Mobile"
               className="sm:hidden absolute left-0 right-0 top-full bg-stone-900 border-t border-stone-800 shadow-xl z-50"
               initial={{ opacity: 0, y: -8 }}
