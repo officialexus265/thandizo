@@ -28,6 +28,8 @@ export async function PUT(req: NextRequest) {
         contactEmail: body.contactEmail,
         logoUrl: body.logoUrl || null,
         refundFeePercent: fee,
+        adminPhone: body.adminPhone || null,
+        callWindow: body.callWindow || null,
       },
       create: {
         id: "default",
@@ -35,6 +37,8 @@ export async function PUT(req: NextRequest) {
         contactEmail: body.contactEmail || "",
         logoUrl: body.logoUrl || null,
         refundFeePercent: fee,
+        adminPhone: body.adminPhone || null,
+        callWindow: body.callWindow || null,
       },
     });
     return NextResponse.json(settings);

@@ -15,6 +15,7 @@ const groups: NavGroup[] = [
     label: "Manage",
     items: [
       { href: "/admin/projects", label: "Projects" },
+      { href: "/admin/submissions", label: "Submissions" },
       { href: "/admin/donations", label: "Donations" },
       { href: "/admin/partners", label: "Partners" },
     ],
@@ -32,6 +33,7 @@ const groups: NavGroup[] = [
     id: "system",
     label: "System",
     items: [
+      { href: "/admin/stats", label: "Stats" },
       { href: "/admin/settings", label: "Settings" },
       { href: "/admin/security", label: "Security" },
     ],
@@ -158,6 +160,14 @@ export default function AdminNav({ email }: { email?: string | null }) {
               }`}
             >
               Dashboard
+            </Link>
+            <Link
+              href="/admin/stats"
+              className={`px-2.5 py-1.5 rounded-lg hover:bg-stone-800 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+                pathname.startsWith("/admin/stats") ? "text-red-300 font-medium" : ""
+              }`}
+            >
+              Stats
             </Link>
 
             {groups.map((g) => (

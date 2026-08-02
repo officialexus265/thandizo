@@ -13,6 +13,8 @@ export default function SettingsPage() {
     contactEmail: "",
     logoUrl: "",
     refundFeePercent: 10,
+    adminPhone: "",
+    callWindow: "",
   });
 
   useEffect(() => {
@@ -25,6 +27,8 @@ export default function SettingsPage() {
             contactEmail: data.contactEmail || "",
             logoUrl: data.logoUrl || "",
             refundFeePercent: data.refundFeePercent ?? 10,
+            adminPhone: data.adminPhone || "",
+            callWindow: data.callWindow || "",
           });
         }
       })

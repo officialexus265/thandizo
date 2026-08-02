@@ -4,6 +4,8 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import Providers from "@/components/Providers";
 import DonationToaster from "@/components/DonationToaster";
+import AnalyticsBeacon from "@/components/AnalyticsBeacon";
+import { Suspense } from "react";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -55,6 +57,9 @@ export default function RootLayout({
           {children}
           <Toaster position="top-center" richColors closeButton />
           <DonationToaster />
+          <Suspense fallback={null}>
+            <AnalyticsBeacon />
+          </Suspense>
         </Providers>
       </body>
     </html>

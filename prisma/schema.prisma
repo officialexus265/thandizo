@@ -27,6 +27,8 @@ model SiteSettings {
   accentColor  String   @default("#b91c1c")
   successColor String   @default("#15803d")
   refundFeePercent Float  @default(10)
+  adminPhone   String?
+  callWindow   String?  // e.g. "Mon–Fri 9:00–12:00 CAT"
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -211,4 +213,46 @@ enum RefundItemStatus {
   SUCCESS
   FAILED
   MANUAL // no phone / non-MWK — needs manual handling
+}
+
+// Generic analytics events — visits now; ads/other later
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  type      String   // page_view | ad_view | ad_click | custom
+  path      String?
+  label     String?  // e.g. ad slot id, campaign name
+  referrer  String?
+  sessionId String?
+  meta      Json?
+  createdAt DateTime @default(now())
+
+  @@index([type, createdAt])
+  @@index([path, createdAt])
+  @@index([sessionId, createdAt])
+}
+
+
+model ProjectSubmission {
+  id              String   @id @default(cuid())
+  title           String
+  developerName   String
+  developerEmail  String
+  developerPhone  String?
+  shortDesc       String
+  fullDesc        String   @db.Text
+  targetAmount    Decimal  @db.Decimal(12, 2)
+  currency        String   @default("MWK")
+  status          SubmissionStatus @default(PENDING)
+  adminNotes      String?  @db.Text
+  scheduledNote   String?  // optional note included in approval email (e.g. preferred call slot)
+  reviewedAt      DateTime?
+  approvedProjectId String? // set when a live Project is created on approve
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum SubmissionStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }

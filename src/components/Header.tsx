@@ -15,6 +15,7 @@ const links = [
   { href: "/", label: "Projects" },
   { href: "/donations", label: "Donations" },
   { href: "/search", label: "Search" },
+  { href: "/submit", label: "Submit project" },
 ];
 
 export default function Header({ logoUrl: logoProp, siteName: nameProp }: HeaderProps) {
