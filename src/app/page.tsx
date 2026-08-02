@@ -109,6 +109,7 @@ export default async function HomePage() {
                   thumbnailUrl={p.thumbnailUrl || p.media[0]?.url || null}
                   status={p.status}
                 />
+                </FadeIn>
               ))}
             </div>
           )}
@@ -131,7 +132,6 @@ export default async function HomePage() {
                   >
                     {p.logoUrl && (
                       <img src={p.logoUrl} alt={p.displayName || p.name} width={32} height={32} className="rounded-full object-cover" />
-                    </FadeIn>
                     )}
                     <span className="font-medium">{p.displayName || p.name}</span>
                   </a>
