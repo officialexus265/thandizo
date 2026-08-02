@@ -42,3 +42,10 @@ body {
 .project-card {
   @apply bg-white rounded-xl border border-stone-200 shadow-sm hover:shadow-md transition-shadow duration-200;
 }
+
+/* Keyboard focus visibility */
+:focus-visible {
+  outline: 2px solid #b91c1c;
+  outline-offset: 2px;
+}
+

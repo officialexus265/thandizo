@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useEffect, useRef, FormEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface HeaderProps {
@@ -13,12 +14,16 @@ interface HeaderProps {
 const links = [
   { href: "/", label: "Projects" },
   { href: "/donations", label: "Donations" },
+  { href: "/search", label: "Search" },
 ];
 
 export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [q, setQ] = useState("");
+  const menuRef = useRef<HTMLElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
-  // Close menu on resize to desktop
   useEffect(() => {
     function onResize() {
       if (window.innerWidth >= 640) setOpen(false);
@@ -27,7 +32,6 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  // Prevent body scroll when menu open
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
     return () => {
@@ -35,10 +39,34 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
     };
   }, [open]);
 
+  // Escape closes menu; restore focus to button
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && open) {
+        setOpen(false);
+        buttonRef.current?.focus();
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open]);
+
+  function onSearch(e: FormEvent) {
+    e.preventDefault();
+    const term = q.trim();
+    if (term.length < 2) return;
+    setOpen(false);
+    router.push(`/search?q=${encodeURIComponent(term)}`);
+  }
+
   return (
     <header className="sticky top-0 z-50 bg-stone-900 text-white shadow-md">
       <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-2">
-        <Link href="/" className="flex items-center gap-2 sm:gap-3 min-w-0" onClick={() => setOpen(false)}>
+        <Link
+          href="/"
+          className="flex items-center gap-2 sm:gap-3 min-w-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded-lg"
+          onClick={() => setOpen(false)}
+        >
           {logoUrl ? (
             <Image
               src={logoUrl}
@@ -57,31 +85,53 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
           </span>
         </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden sm:flex items-center gap-4 text-sm shrink-0">
+        {/* Desktop search */}
+        <form
+          role="search"
+          onSubmit={onSearch}
+          className="hidden md:flex flex-1 max-w-xs mx-4"
+        >
+          <label htmlFor="header-search" className="sr-only">
+            Search projects and partners
+          </label>
+          <input
+            id="header-search"
+            type="search"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            placeholder="Search…"
+            className="w-full rounded-lg bg-stone-800 border border-stone-700 px-3 py-1.5 text-sm text-white placeholder:text-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+          />
+        </form>
+
+        <nav className="hidden sm:flex items-center gap-4 text-sm shrink-0" aria-label="Main">
           {links.map((l) => (
-            <Link key={l.href} href={l.href} className="hover:text-red-300 transition">
+            <Link
+              key={l.href}
+              href={l.href}
+              className="hover:text-red-300 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 rounded px-1"
+            >
               {l.label}
             </Link>
           ))}
           <Link
             href="/admin"
-            className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 transition font-medium text-sm whitespace-nowrap"
+            className="px-3 py-1.5 rounded-lg bg-red-700 hover:bg-red-800 transition font-medium text-sm whitespace-nowrap focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:ring-offset-2 focus-visible:ring-offset-stone-900"
           >
             Dashboard
           </Link>
         </nav>
 
-        {/* Mobile hamburger */}
         <button
+          ref={buttonRef}
           type="button"
           aria-label={open ? "Close menu" : "Open menu"}
           aria-expanded={open}
+          aria-controls="mobile-menu"
           onClick={() => setOpen((v) => !v)}
-          className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-stone-800 transition"
+          className="sm:hidden inline-flex items-center justify-center w-10 h-10 rounded-lg hover:bg-stone-800 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
         >
-          <span className="sr-only">Menu</span>
-          <div className="w-5 flex flex-col gap-1.5">
+          <div className="w-5 flex flex-col gap-1.5" aria-hidden="true">
             <span
               className={`block h-0.5 bg-white rounded transition-transform duration-200 ${
                 open ? "translate-y-2 rotate-45" : ""
@@ -101,7 +151,6 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
         </button>
       </div>
 
-      {/* Mobile drawer */}
       <AnimatePresence>
         {open && (
           <>
@@ -111,21 +160,38 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setOpen(false)}
+              aria-hidden="true"
             />
             <motion.nav
+              id="mobile-menu"
+              ref={menuRef}
+              aria-label="Mobile"
               className="sm:hidden absolute left-0 right-0 top-full bg-stone-900 border-t border-stone-800 shadow-xl z-50"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
+              <form role="search" onSubmit={onSearch} className="px-4 pt-3">
+                <label htmlFor="mobile-search" className="sr-only">
+                  Search projects and partners
+                </label>
+                <input
+                  id="mobile-search"
+                  type="search"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Search projects, partners…"
+                  className="w-full rounded-lg bg-stone-800 border border-stone-700 px-3 py-2 text-sm text-white placeholder:text-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                />
+              </form>
               <ul className="px-4 py-3 space-y-1">
                 {links.map((l) => (
                   <li key={l.href}>
                     <Link
                       href={l.href}
                       onClick={() => setOpen(false)}
-                      className="block py-3 px-2 rounded-lg text-base hover:bg-stone-800 transition"
+                      className="block py-3 px-2 rounded-lg text-base hover:bg-stone-800 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                     >
                       {l.label}
                     </Link>
@@ -135,7 +201,7 @@ export default function Header({ logoUrl, siteName = "thandizo" }: HeaderProps) 
                   <Link
                     href="/admin"
                     onClick={() => setOpen(false)}
-                    className="block py-3 px-2 rounded-lg text-base font-medium text-red-300 hover:bg-stone-800 transition"
+                    className="block py-3 px-2 rounded-lg text-base font-medium text-red-300 hover:bg-stone-800 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                   >
                     Dashboard
                   </Link>
