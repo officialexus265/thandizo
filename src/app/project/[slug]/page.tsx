@@ -99,6 +99,23 @@ export default async function ProjectPage({ params }: Props) {
                 by <span className="font-medium text-stone-700">{project.developerName}</span>
               </p>
             )}
+            {typeof project.workProgress === "number" && project.workProgress > 0 && (
+              <div className="mt-3">
+                <div className="flex justify-between text-xs text-stone-500 mb-1">
+                  <span>Work progress</span>
+                  <span>{project.workProgress}%</span>
+                </div>
+                <div className="h-2 rounded-full bg-stone-200 overflow-hidden">
+                  <div
+                    className="h-full bg-stone-800 rounded-full"
+                    style={{ width: `${Math.min(100, project.workProgress)}%` }}
+                  />
+                </div>
+                {project.progressNote && (
+                  <p className="text-xs text-stone-500 mt-1">{project.progressNote}</p>
+                )}
+              </div>
+            )}
             {project.status === "FUNDED" && (
               <span className="bg-green-700 text-white text-xs font-medium px-2 py-1 rounded">Funded</span>
             )}

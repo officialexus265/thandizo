@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/notifications";
 import slugify from "slugify";
+import { ensureDeveloperWithCode } from "@/lib/developer";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -64,6 +65,8 @@ export async function PATCH(req: NextRequest) {
     }
 
     // APPROVE
+    let portalCode: string | null = null;
+    let portalDeveloperId: string | null = null;
     const settings = await prisma.siteSettings.findUnique({
       where: { id: "default" },
     });
@@ -82,11 +85,20 @@ export async function PATCH(req: NextRequest) {
       const existing = await prisma.project.findUnique({ where: { slug } });
       if (existing) slug = `${slug}-${Date.now().toString(36)}`;
 
+      const { developerId, accessCode } = await ensureDeveloperWithCode({
+        name: sub.developerName,
+        email: sub.developerEmail,
+        phone: sub.developerPhone,
+      });
+      portalCode = accessCode;
+      portalDeveloperId = developerId;
+
       const project = await prisma.project.create({
         data: {
           title: sub.title,
           slug,
           developerName: sub.developerName,
+          developerId,
           shortDesc: sub.shortDesc,
           fullDesc: sub.fullDesc,
           targetAmount: sub.targetAmount,
@@ -95,6 +107,14 @@ export async function PATCH(req: NextRequest) {
         },
       });
       projectId = project.id;
+    } else {
+      const ensured = await ensureDeveloperWithCode({
+        name: sub.developerName,
+        email: sub.developerEmail,
+        phone: sub.developerPhone,
+      });
+      portalCode = ensured.accessCode;
+      portalDeveloperId = ensured.developerId;
     }
 
     await prisma.projectSubmission.update({
@@ -129,7 +149,14 @@ export async function PATCH(req: NextRequest) {
         (sub.developerPhone ? `Your phone on file: ${sub.developerPhone}\n` : "") +
         (adminNotes ? `\nMessage from admin:\n${adminNotes}\n` : "") +
         (projectId
-          ? `\nA project draft/listing has been prepared on the platform for you.\n`
+          ? `\nA project listing has been created on the platform for you.\n`
+          : "") +
+        (portalCode
+          ? `\n--- Developer portal ---\n` +
+            `Login at: ${process.env.NEXTAUTH_URL || ""}/developer/login\n` +
+            `Email: ${sub.developerEmail}\n` +
+            `Access code: ${portalCode}\n` +
+            `(Keep this code private. You can update progress, media, and details — target changes need admin approval.)\n`
           : "") +
         `\nInu ndi thandizo lathu`
     );

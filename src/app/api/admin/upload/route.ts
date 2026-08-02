@@ -14,6 +14,16 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const projectId = formData.get("projectId") as string | null;
+
+    // Developers may only upload to their own projects
+    if ((session.user as any)?.role === "developer" && projectId) {
+      const owned = await prisma.project.findFirst({
+        where: { id: projectId, developerId: (session.user as any).id },
+      });
+      if (!owned) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    }
     const caption = (formData.get("caption") as string) || null;
     const setAsThumbnail = formData.get("setAsThumbnail") === "true";
 

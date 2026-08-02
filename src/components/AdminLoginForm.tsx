@@ -24,7 +24,7 @@ export default function AdminLoginForm({ logoUrl, siteName = "thandizo" }: Props
     setLoading(true);
 
     try {
-      const res = await signIn("credentials", {
+      const res = await signIn("admin-credentials", {
         email,
         password,
         token: needs2FA ? token : undefined,

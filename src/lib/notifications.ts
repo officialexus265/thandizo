@@ -2,16 +2,58 @@ import { prisma } from "./prisma";
 
 const SIGNATURE = "Inu ndi thandizo lathu";
 
+/** Malawi / international phone → E.164-ish +digits */
+export function normalizePhone(phone: string): string {
+  let digits = phone.replace(/\D/g, "");
+  if (digits.startsWith("0") && digits.length === 10) {
+    digits = "265" + digits.slice(1);
+  }
+  if (!digits.startsWith("265") && digits.length === 9) {
+    digits = "265" + digits;
+  }
+  return "+" + digits;
+}
+
 export async function sendSMS(to: string, message: string) {
   const apiKey = process.env.HTTPSMS_API_KEY;
-  const from = process.env.HTTPSMS_FROM || "Thandizo";
+  // Must be the E.164 number of the phone running the httpSMS Android app
+  const from = process.env.HTTPSMS_FROM || "";
 
   if (!apiKey) {
     console.warn("HTTPSMS_API_KEY not set – SMS skipped");
-    return { success: false, error: "SMS not configured" };
+    await prisma.notificationLog.create({
+      data: {
+        type: "sms",
+        recipient: to,
+        message,
+        status: "skipped_no_key",
+      },
+    });
+    return { success: false, error: "SMS not configured (HTTPSMS_API_KEY)" };
   }
 
-  // httpsms.com API – adjust endpoint if their docs differ
+  if (!from || from.toLowerCase() === "thandizo") {
+    console.warn(
+      "HTTPSMS_FROM must be the E.164 phone number of your httpSMS Android device (e.g. +26599...)"
+    );
+    await prisma.notificationLog.create({
+      data: {
+        type: "sms",
+        recipient: to,
+        message,
+        status: "skipped_bad_from",
+      },
+    });
+    return {
+      success: false,
+      error: "HTTPSMS_FROM must be your phone number in +265… format, not a name",
+    };
+  }
+
+  const toNorm = normalizePhone(to);
+  const fromNorm = from.startsWith("+") ? from : normalizePhone(from);
+  const content = `${message}\n\n${SIGNATURE}`.slice(0, 600);
+
   try {
     const res = await fetch("https://api.httpsms.com/v1/messages/send", {
       method: "POST",
@@ -20,32 +62,37 @@ export async function sendSMS(to: string, message: string) {
         "x-api-key": apiKey,
       },
       body: JSON.stringify({
-        content: `${message}\n\n${SIGNATURE}`,
-        from,
-        to: to.startsWith("+") ? to : `+${to.replace(/\D/g, "")}`,
+        content,
+        from: fromNorm,
+        to: toNorm,
       }),
     });
 
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
     const success = res.ok;
+
+    if (!success) {
+      console.error("httpSMS error", res.status, JSON.stringify(data));
+    }
 
     await prisma.notificationLog.create({
       data: {
         type: "sms",
-        recipient: to,
-        message: `${message}\n\n${SIGNATURE}`,
-        status: success ? "sent" : "failed",
+        recipient: toNorm,
+        message: content,
+        status: success ? "sent" : `failed:${res.status}:${JSON.stringify(data).slice(0, 200)}`,
       },
     });
 
-    return { success, data };
+    return { success, data, status: res.status };
   } catch (err: any) {
+    console.error("httpSMS exception", err);
     await prisma.notificationLog.create({
       data: {
         type: "sms",
         recipient: to,
         message,
-        status: "failed",
+        status: "failed:" + (err.message || "exception"),
       },
     });
     return { success: false, error: err.message };
@@ -53,23 +100,30 @@ export async function sendSMS(to: string, message: string) {
 }
 
 export async function sendEmail(to: string, subject: string, body: string) {
-  // Using Resend if available, otherwise log for now
   const resendKey = process.env.RESEND_API_KEY;
-  const from = process.env.ADMIN_EMAIL || "officialnexus265@gmail.com";
+  // Resend requires a verified domain OR use onboarding@resend.dev for tests
+  const fromAddress =
+    process.env.EMAIL_FROM ||
+    process.env.RESEND_FROM ||
+    "Thandizo <onboarding@resend.dev>";
 
   const fullBody = `${body}\n\n${SIGNATURE}`;
 
   if (!resendKey) {
-    console.warn("RESEND_API_KEY not set – email logged only");
+    console.warn("RESEND_API_KEY not set – email logged only (not delivered)");
     await prisma.notificationLog.create({
       data: {
         type: "email",
         recipient: to,
-        message: fullBody,
-        status: "logged",
+        message: `[NOT SENT — no RESEND_API_KEY]\nSubject: ${subject}\n\n${fullBody}`,
+        status: "logged_no_key",
       },
     });
-    return { success: true, logged: true };
+    return {
+      success: false,
+      logged: true,
+      error: "RESEND_API_KEY missing — set it in Vercel env to send real emails",
+    };
   }
 
   try {
@@ -80,31 +134,40 @@ export async function sendEmail(to: string, subject: string, body: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `Thandizo <${from}>`,
+        from: fromAddress,
         to: [to],
         subject,
         text: fullBody,
       }),
     });
 
+    const data = await res.json().catch(() => ({}));
     const success = res.ok;
+
+    if (!success) {
+      console.error("Resend error", res.status, JSON.stringify(data));
+    }
+
     await prisma.notificationLog.create({
       data: {
         type: "email",
         recipient: to,
-        message: fullBody,
-        status: success ? "sent" : "failed",
+        message: `Subject: ${subject}\n\n${fullBody}`,
+        status: success
+          ? "sent"
+          : `failed:${res.status}:${JSON.stringify(data).slice(0, 300)}`,
       },
     });
 
-    return { success };
+    return { success, data };
   } catch (err: any) {
+    console.error("Resend exception", err);
     await prisma.notificationLog.create({
       data: {
         type: "email",
         recipient: to,
         message: fullBody,
-        status: "failed",
+        status: "failed:" + (err.message || "exception"),
       },
     });
     return { success: false, error: err.message };
