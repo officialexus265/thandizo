@@ -71,6 +71,7 @@ model Project {
   refundBatches    RefundBatch[]
   targetChangeRequests TargetChangeRequest[]
   withdrawals          Withdrawal[]
+  updates              CampaignUpdate[]
 }
 
 enum ProjectStatus {
@@ -114,7 +115,7 @@ model Donation {
   paychanguRef     String?
   status           DonationStatus    @default(PENDING)
   // HOLD = eligible for refund until project closes; DIRECT = released, not refundable
-  fundMode         FundMode          @default(HOLD)
+  fundMode         FundMode          @default(DIRECT)
   platformFeePercent Float            @default(0)
   platformFeeAmount  Decimal          @default(0) @db.Decimal(12, 2)
   netAmount          Decimal          @default(0) @db.Decimal(12, 2)
@@ -364,4 +365,17 @@ enum WithdrawalStatus {
   PROCESSING
   SUCCESS
   FAILED
+}
+
+
+model CampaignUpdate {
+  id          String   @id @default(cuid())
+  projectId   String
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  developerId String?
+  title       String
+  body        String   @db.Text
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

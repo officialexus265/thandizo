@@ -62,12 +62,6 @@ export default async function DeveloperDashboard() {
                     {formatCurrency(money.collected, money.currency)}
                   </p>
                 </div>
-                <div className="rounded-lg bg-amber-50 p-3">
-                  <p className="text-xs text-amber-800">Held</p>
-                  <p className="font-semibold text-amber-900">
-                    {formatCurrency(money.held, money.currency)}
-                  </p>
-                </div>
                 <div className="rounded-lg bg-green-50 p-3">
                   <p className="text-xs text-green-800">Available</p>
                   <p className="font-semibold text-green-900">

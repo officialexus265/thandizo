@@ -6,14 +6,12 @@ import { sendThankYou } from "@/lib/notifications";
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const txRef = searchParams.get("tx_ref") || searchParams.get("txRef");
-  const status = searchParams.get("status");
 
   if (!txRef) {
     return NextResponse.redirect(new URL("/?error=missing_ref", req.url));
   }
 
   try {
-    // Always verify server-side
     const verification = await verifyPayChanguTransaction(txRef);
     const isSuccess =
       verification?.status === "success" ||
@@ -30,17 +28,17 @@ export async function GET(req: NextRequest) {
     }
 
     if (isSuccess && donation.status !== "SUCCESS") {
-      // Update donation
       await prisma.donation.update({
         where: { id: donation.id },
         data: {
           status: "SUCCESS",
-          paychanguRef: verification?.data?.id || verification?.data?.transaction_id || null,
+          fundMode: "DIRECT",
+          paychanguRef:
+            verification?.data?.id || verification?.data?.transaction_id || null,
         },
       });
 
-      // Update project totals
-      await prisma.project.update({
+      const updatedProject = await prisma.project.update({
         where: { id: donation.projectId },
         data: {
           raisedAmount: { increment: donation.amount },
@@ -48,7 +46,17 @@ export async function GET(req: NextRequest) {
         },
       });
 
-      // Send thank-you
+      // Auto-mark FUNDED when target reached (still ACTIVE for display until admin closes if preferred)
+      if (
+        updatedProject.status === "ACTIVE" &&
+        Number(updatedProject.raisedAmount) >= Number(updatedProject.targetAmount)
+      ) {
+        await prisma.project.update({
+          where: { id: donation.projectId },
+          data: { status: "FUNDED" },
+        });
+      }
+
       await sendThankYou({
         donorName: donation.donorName,
         isAnonymous: donation.isAnonymous,
@@ -66,7 +74,9 @@ export async function GET(req: NextRequest) {
       });
     }
 
-    const redirectUrl = `/project/${donation.project.slug}?payment=${isSuccess ? "success" : "failed"}`;
+    const redirectUrl = `/project/${donation.project.slug}?payment=${
+      isSuccess ? "success" : "failed"
+    }`;
     return NextResponse.redirect(new URL(redirectUrl, req.url));
   } catch (err) {
     console.error("PayChangu callback error:", err);

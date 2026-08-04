@@ -28,6 +28,10 @@ export default function DeveloperProjectManagePage() {
   const [reqTarget, setReqTarget] = useState("");
   const [reqReason, setReqReason] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [updates, setUpdates] = useState<any[]>([]);
+  const [updateTitle, setUpdateTitle] = useState("");
+  const [updateBody, setUpdateBody] = useState("");
+  const [postingUpdate, setPostingUpdate] = useState(false);
 
   function load() {
     setLoading(true);
@@ -49,6 +53,7 @@ export default function DeveloperProjectManagePage() {
         });
         setMedia(p.media || []);
         setMoney(data.money);
+        loadUpdates();
       })
       .catch((e) => toast.error(e.message))
       .finally(() => setLoading(false));
@@ -134,6 +139,58 @@ export default function DeveloperProjectManagePage() {
     }
   }
 
+  function loadUpdates() {
+    fetch(`/api/developer/updates?projectId=${id}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setUpdates(d);
+      })
+      .catch(() => {});
+  }
+
+  async function postUpdate() {
+    if (!updateTitle.trim() || !updateBody.trim()) {
+      toast.error("Title and body required");
+      return;
+    }
+    setPostingUpdate(true);
+    try {
+      const res = await fetch("/api/developer/updates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          projectId: id,
+          title: updateTitle.trim(),
+          body: updateBody.trim(),
+          isPublic: true,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast.success("Update posted");
+      setUpdateTitle("");
+      setUpdateBody("");
+      loadUpdates();
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setPostingUpdate(false);
+    }
+  }
+
+  async function deleteUpdate(uid: string) {
+    if (!confirm("Delete this update?")) return;
+    try {
+      const res = await fetch(`/api/developer/updates?id=${uid}`, { method: "DELETE" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed");
+      toast.success("Deleted");
+      loadUpdates();
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  }
+
   if (loading) return <p className="text-sm text-stone-500">Loading…</p>;
 
   return (
@@ -146,23 +203,29 @@ export default function DeveloperProjectManagePage() {
       </div>
 
       {money && (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="bg-white border rounded-xl p-4">
-            <p className="text-xs text-stone-500">Collected</p>
+            <p className="text-xs text-stone-500">Collected (gross)</p>
             <p className="text-lg font-bold">
               {formatCurrency(money.collected, money.currency)}
             </p>
           </div>
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4">
-            <p className="text-xs text-amber-800">Held (not withdrawn)</p>
-            <p className="text-lg font-bold text-amber-900">
-              {formatCurrency(money.held, money.currency)}
+          <div className="bg-white border rounded-xl p-4">
+            <p className="text-xs text-stone-500">Platform fees</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(money.fees || 0, money.currency)}
             </p>
           </div>
           <div className="bg-green-50 border border-green-100 rounded-xl p-4">
-            <p className="text-xs text-green-800">Available (direct)</p>
+            <p className="text-xs text-green-800">Available</p>
             <p className="text-lg font-bold text-green-900">
               {formatCurrency(money.available, money.currency)}
+            </p>
+          </div>
+          <div className="bg-white border rounded-xl p-4">
+            <p className="text-xs text-stone-500">Withdrawn</p>
+            <p className="text-lg font-bold">
+              {formatCurrency(money.withdrawn || 0, money.currency)}
             </p>
           </div>
         </div>
@@ -258,6 +321,56 @@ export default function DeveloperProjectManagePage() {
           ))}
         </div>
         <p className="text-xs text-stone-500">Click an image to set it as thumbnail, then Save.</p>
+      </section>
+
+      <section className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">
+        <h2 className="font-semibold">Campaign updates (public)</h2>
+        <p className="text-xs text-stone-500">
+          Post progress for donors — builds trust. Visible on the public project page.
+        </p>
+        <input
+          value={updateTitle}
+          onChange={(e) => setUpdateTitle(e.target.value)}
+          placeholder="Update title"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+        />
+        <textarea
+          rows={3}
+          value={updateBody}
+          onChange={(e) => setUpdateBody(e.target.value)}
+          placeholder="What happened? e.g. Hospital invoice paid for stage 1…"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          onClick={postUpdate}
+          disabled={postingUpdate}
+          className="px-4 py-2 rounded-lg bg-stone-900 text-white text-sm font-medium disabled:opacity-60"
+        >
+          {postingUpdate ? "Posting…" : "Post update"}
+        </button>
+        <ul className="space-y-2 pt-2">
+          {updates.map((u) => (
+            <li key={u.id} className="border rounded-lg p-3 text-sm">
+              <div className="flex justify-between gap-2">
+                <div>
+                  <p className="font-medium">{u.title}</p>
+                  <p className="text-stone-600 whitespace-pre-wrap mt-1">{u.body}</p>
+                  <p className="text-xs text-stone-400 mt-1">
+                    {new Date(u.createdAt).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => deleteUpdate(u.id)}
+                  className="text-xs text-red-700 shrink-0"
+                >
+                  Delete
+                </button>
+              </div>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="bg-white border border-stone-200 rounded-xl p-5 space-y-3">

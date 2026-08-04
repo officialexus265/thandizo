@@ -52,22 +52,21 @@ export async function ensureDeveloperWithCode(params: {
 }
 
 /**
- * Money summary for a project.
- * collected = gross SUCCESS donations
- * fees = platform fees on SUCCESS
- * netCollected = net toward campaign
- * held = HOLD net (not withdrawable yet)
- * available = DIRECT net minus successful withdrawals
- * withdrawn = sum of SUCCESS withdrawals
+ * All successful donations go DIRECT (available after platform fee).
+ * available = sum(netAmount) - withdrawn - pending withdrawals
  */
 export async function projectMoneySummary(projectId: string) {
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { status: true },
+  });
+
   const donations = await prisma.donation.findMany({
     where: { projectId, status: "SUCCESS" },
     select: {
       amount: true,
       netAmount: true,
       platformFeeAmount: true,
-      fundMode: true,
       currency: true,
     },
   });
@@ -83,8 +82,6 @@ export async function projectMoneySummary(projectId: string) {
   let collected = 0;
   let fees = 0;
   let netCollected = 0;
-  let held = 0;
-  let directNet = 0;
   let currency = "MWK";
 
   for (const d of donations) {
@@ -95,8 +92,6 @@ export async function projectMoneySummary(projectId: string) {
     collected += gross;
     fees += fee;
     netCollected += net;
-    if (d.fundMode === "HOLD") held += net;
-    else directNet += net;
   }
 
   let withdrawn = 0;
@@ -107,17 +102,22 @@ export async function projectMoneySummary(projectId: string) {
     else pendingWithdraw += n;
   }
 
-  const available = Math.max(0, Math.round((directNet - withdrawn - pendingWithdraw) * 100) / 100);
+  const available = Math.max(
+    0,
+    Math.round((netCollected - withdrawn - pendingWithdraw) * 100) / 100
+  );
 
   return {
     collected,
     fees,
     netCollected,
-    held,
+    held: 0,
+    heldReleased: true,
     available,
     withdrawn,
     pendingWithdraw,
     currency,
     donationCount: donations.length,
+    projectStatus: project?.status || null,
   };
 }

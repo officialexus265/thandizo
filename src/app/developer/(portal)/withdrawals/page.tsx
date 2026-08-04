@@ -82,8 +82,7 @@ export default function DeveloperWithdrawalsPage() {
       <div>
         <h1 className="text-2xl font-bold">Withdrawals</h1>
         <p className="text-sm text-stone-500 mt-1">
-          Withdraw <strong>available</strong> funds (DIRECT donations, after platform fee). Held funds
-          stay locked until the campaign rules allow release. Only MWK mobile money is automated.
+          Withdraw available funds after platform fee. All donations go to the campaign; donors accepted fraud risk. Only MWK mobile money is automated.
         </p>
       </div>
 
@@ -120,12 +119,6 @@ export default function DeveloperWithdrawalsPage() {
           <div className="bg-white border rounded-xl p-3">
             <p className="text-xs text-stone-500">Platform fees</p>
             <p className="font-semibold">{formatCurrency(money.fees, money.currency)}</p>
-          </div>
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-3">
-            <p className="text-xs text-amber-800">Held</p>
-            <p className="font-semibold text-amber-900">
-              {formatCurrency(money.held, money.currency)}
-            </p>
           </div>
           <div className="bg-green-50 border border-green-100 rounded-xl p-3">
             <p className="text-xs text-green-800">Available</p>

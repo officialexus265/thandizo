@@ -89,7 +89,7 @@ export default function RefundsPage() {
       return;
     }
     if (!preview || preview.donors.length === 0) {
-      toast.error("No held donations to refund");
+      toast.error("No donations to refund");
       return;
     }
 
@@ -127,7 +127,7 @@ export default function RefundsPage() {
     <div className="max-w-4xl">
       <h1 className="text-2xl font-bold mb-2">Refunds</h1>
       <p className="text-stone-500 text-sm mb-6">
-        Refund <strong>held</strong> donations for a project that is not legitimate.
+        Refund successful donations for a project flagged as not legitimate (processing fee applies).
         Only available before the project is finished or closed. adjustable processing fee (set in Settings) applies.
         Automatic payouts are MWK + phone only (Airtel / TNM).
       </p>
@@ -186,7 +186,7 @@ export default function RefundsPage() {
           </p>
 
           {preview.donors.length === 0 ? (
-            <p className="text-stone-500 text-sm">No held SUCCESS donations to refund.</p>
+            <p className="text-stone-500 text-sm">No SUCCESS donations to refund.</p>
           ) : (
             <>
               <div className="overflow-x-auto mb-4">

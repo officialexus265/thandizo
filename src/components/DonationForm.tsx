@@ -25,7 +25,6 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [preferredContact, setPreferredContact] = useState<"NONE" | "EMAIL" | "SMS" | "BOTH">("NONE");
-  const [fundMode, setFundMode] = useState<"HOLD" | "DIRECT">("HOLD");
   const [message, setMessage] = useState("");
   const [acceptRisk, setAcceptRisk] = useState(false);
   const [feePercent, setFeePercent] = useState(0);
@@ -79,7 +78,6 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
           email: email || null,
           phone: phone || null,
           preferredContact,
-          fundMode,
           message: message || null,
           acceptedRisk: true,
         }),
@@ -197,42 +195,6 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
           />
         </div>
       )}
-
-      <div>
-        <label className="block text-sm font-medium text-stone-700 mb-1">How should your donation be handled? *</label>
-        <div className="space-y-2 mt-1">
-          <label className="flex items-start gap-2 text-sm border border-stone-200 rounded-lg p-3 cursor-pointer hover:bg-stone-50">
-            <input
-              type="radio"
-              name="fundMode"
-              checked={fundMode === "HOLD"}
-              onChange={() => setFundMode("HOLD")}
-              className="mt-1"
-            />
-            <span>
-              <strong>Hold until project is verified</strong>
-              <span className="block text-stone-500 text-xs mt-0.5">
-                Funds are held. If the project is flagged as not legitimate before it finishes, you can be refunded (minus 10% processing fee).
-              </span>
-            </span>
-          </label>
-          <label className="flex items-start gap-2 text-sm border border-stone-200 rounded-lg p-3 cursor-pointer hover:bg-stone-50">
-            <input
-              type="radio"
-              name="fundMode"
-              checked={fundMode === "DIRECT"}
-              onChange={() => setFundMode("DIRECT")}
-              className="mt-1"
-            />
-            <span>
-              <strong>Release directly to the project</strong>
-              <span className="block text-stone-500 text-xs mt-0.5">
-                Funds go straight to the project. No refund is available later.
-              </span>
-            </span>
-          </label>
-        </div>
-      </div>
 
       <div>
         <label className="block text-sm font-medium text-stone-700 mb-1">Message (optional)</label>

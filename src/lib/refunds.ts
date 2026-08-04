@@ -20,7 +20,7 @@ export type AggregatedDonor = {
   skipReason?: string;
 };
 
-/** Group SUCCESS + HOLD donations for an open project, per person */
+/** Group SUCCESS donations for a flagged open project, per person */
 async function getFeeRate(): Promise<number> {
   const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
   const pct = settings?.refundFeePercent ?? 10;
@@ -42,7 +42,6 @@ export async function previewRefund(projectId: string) {
     where: {
       projectId,
       status: "SUCCESS",
-      fundMode: "HOLD",
       refundItemId: null,
     },
     orderBy: { createdAt: "asc" },
@@ -139,7 +138,7 @@ export async function previewRefund(projectId: string) {
 export async function executeRefund(projectId: string, reason: string) {
   const preview = await previewRefund(projectId);
   if (preview.donors.length === 0) {
-    throw new Error("No held donations available to refund");
+    throw new Error("No successful donations available to refund");
   }
 
   // Flag project
@@ -288,7 +287,7 @@ async function notifyRefund(
   let body = `Hello ${name},\n\n`;
   body += `The project "${projectTitle}" was flagged as not legitimate.\n`;
   body += `Reason: ${reason}\n\n`;
-  body += `Your total held donations: ${d.currency} ${gross}\n`;
+  body += `Your total donations: ${d.currency} ${gross}\n`;
   body += `Processing fee (10%): ${d.currency} ${fee}\n`;
 
   if (payoutSuccess) {
@@ -315,7 +314,7 @@ async function notifyRefund(
   ) {
     // SMS shorter
     const sms = payoutSuccess
-      ? `Thandizo: "${projectTitle}" was flagged. Your held total ${d.currency} ${gross}; fee 10% ${fee}; refunded ${net} to your mobile money. Inu ndi thandizo lathu`
+      ? `Thandizo: "${projectTitle}" was flagged. Your total ${d.currency} ${gross}; fee 10% ${fee}; refunded ${net} to your mobile money. Inu ndi thandizo lathu`
       : `Thandizo: "${projectTitle}" was flagged. Refund of ${d.currency} ${net} needs follow-up. We will contact you. Inu ndi thandizo lathu`;
     await sendSMS(d.phone, sms);
   }

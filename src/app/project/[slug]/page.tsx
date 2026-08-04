@@ -22,6 +22,7 @@ const getProject = cache(async (slug: string) => {
   return prisma.project.findUnique({
     where: { slug },
     include: {
+      updates: { where: { isPublic: true }, orderBy: { createdAt: "desc" }, take: 20 },
       media: { orderBy: { sortOrder: "asc" } },
       donations: {
         where: { status: "SUCCESS" },
@@ -238,6 +239,31 @@ export default async function ProjectPage({ params }: Props) {
               See all donations →
             </Link>
           </div>
+        )}
+
+        
+        {/* Campaign updates */}
+        {project.updates && project.updates.length > 0 && (
+          <section className="mt-10">
+            <h2 className="text-xl font-semibold mb-4">Campaign updates</h2>
+            <ul className="space-y-4">
+              {project.updates.map((u: any) => (
+                <li key={u.id} className="rounded-xl border border-stone-200 bg-white p-4">
+                  <p className="font-semibold text-stone-900">{u.title}</p>
+                  <p className="text-stone-700 whitespace-pre-wrap mt-2 text-sm leading-relaxed">
+                    {u.body}
+                  </p>
+                  <p className="text-xs text-stone-400 mt-2">
+                    {new Date(u.createdAt).toLocaleDateString(undefined, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </section>
         )}
 
         {/* Fund form */}
