@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, FormEvent, ChangeEvent } from "react";
 import { toast } from "sonner";
 import { KYC_SCRIPT_EN, KYC_SCRIPT_NY } from "@/lib/legal";
 
@@ -36,8 +36,39 @@ export default function DeveloperKycPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  async function onSubmit(e: React.FormEvent) {
+  async function uploadFile(file: File): Promise<string> {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("folder", "thandizo/kyc");
+    const res = await fetch("/api/upload", { method: "POST", body: fd });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Upload failed");
+    return data.url as string;
+  }
+
+  async function onFile(
+    e: ChangeEvent<HTMLInputElement>,
+    field: "nationalIdUrl" | "selfieWithIdUrl" | "videoKycUrl"
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const url = await uploadFile(file);
+      setForm((f) => ({ ...f, [field]: url }));
+      toast.success("Uploaded");
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      e.target.value = "";
+    }
+  }
+
+  async function onSubmit(e: FormEvent) {
     e.preventDefault();
+    if (!form.nationalIdUrl || !form.selfieWithIdUrl || !form.videoKycUrl) {
+      toast.error("Please upload ID, selfie, and video first");
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch("/api/developer/kyc", {
@@ -100,47 +131,82 @@ export default function DeveloperKycPage() {
           />
         </div>
         <div>
-          <label className="text-sm font-medium">National ID image URL</label>
+          <label className="text-sm font-medium">National ID image (max 5MB)</label>
           <input
-            required
-            value={form.nationalIdUrl}
-            onChange={(e) => setForm({ ...form, nationalIdUrl: e.target.value })}
-            placeholder="Cloudinary or secure image URL"
-            className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+            type="file"
+            accept="image/*"
             disabled={status === "APPROVED"}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const fd = new FormData();
+                fd.append("file", file);
+                fd.append("folder", "thandizo/kyc");
+                const res = await fetch("/api/upload", { method: "POST", body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Upload failed");
+                setForm((f) => ({ ...f, nationalIdUrl: data.url }));
+                toast.success("ID uploaded");
+              } catch (err: any) {
+                toast.error(err.message);
+              }
+            }}
+            className="mt-1 w-full text-sm"
           />
+          {form.nationalIdUrl && <p className="text-xs text-green-700 mt-1">ID uploaded</p>}
         </div>
         <div>
-          <label className="text-sm font-medium">Selfie holding national ID — URL</label>
+          <label className="text-sm font-medium">Selfie holding national ID (max 5MB)</label>
           <input
-            required
-            value={form.selfieWithIdUrl}
-            onChange={(e) => setForm({ ...form, selfieWithIdUrl: e.target.value })}
-            className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+            type="file"
+            accept="image/*"
             disabled={status === "APPROVED"}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const fd = new FormData();
+                fd.append("file", file);
+                fd.append("folder", "thandizo/kyc");
+                const res = await fetch("/api/upload", { method: "POST", body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Upload failed");
+                setForm((f) => ({ ...f, selfieWithIdUrl: data.url }));
+                toast.success("Selfie uploaded");
+              } catch (err: any) {
+                toast.error(err.message);
+              }
+            }}
+            className="mt-1 w-full text-sm"
           />
+          {form.selfieWithIdUrl && <p className="text-xs text-green-700 mt-1">Selfie uploaded</p>}
         </div>
         <div>
-          <label className="text-sm font-medium">Verification video URL</label>
+          <label className="text-sm font-medium">Verification video (max 10MB)</label>
           <input
-            required
-            value={form.videoKycUrl}
-            onChange={(e) => setForm({ ...form, videoKycUrl: e.target.value })}
-            className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
+            type="file"
+            accept="video/*"
             disabled={status === "APPROVED"}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              if (!file) return;
+              try {
+                const fd = new FormData();
+                fd.append("file", file);
+                fd.append("folder", "thandizo/kyc");
+                const res = await fetch("/api/upload", { method: "POST", body: fd });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.error || "Upload failed");
+                setForm((f) => ({ ...f, videoKycUrl: data.url }));
+                toast.success("Video uploaded");
+              } catch (err: any) {
+                toast.error(err.message);
+              }
+            }}
+            className="mt-1 w-full text-sm"
           />
-        </div>
-        <div>
-          <label className="text-sm font-medium">Script language</label>
-          <select
-            value={form.videoLanguage}
-            onChange={(e) => setForm({ ...form, videoLanguage: e.target.value })}
-            className="mt-1 w-full border rounded-lg px-3 py-2 text-sm"
-            disabled={status === "APPROVED"}
-          >
-            <option value="EN">English</option>
-            <option value="NY">Chichewa</option>
-          </select>
+          {form.videoKycUrl && <p className="text-xs text-green-700 mt-1">Video uploaded</p>}
         </div>
         {status !== "APPROVED" && (
           <button
@@ -155,3 +221,5 @@ export default function DeveloperKycPage() {
     </div>
   );
 }
+EOF
+echo "written"
