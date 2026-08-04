@@ -194,7 +194,7 @@ export default function NotifyPage() {
       <section className="mt-10 bg-white border rounded-xl p-5 space-y-4">
         <h2 className="text-lg font-semibold">Test email / SMS</h2>
         <p className="text-sm text-stone-500">
-          Use this to check Resend and httpSMS. For Resend free plan, send only to the email of your Resend account unless you verified a domain.
+          Uses Gmail SMTP if SMTP_USER + SMTP_PASS are set on Vercel; otherwise Resend. SMS uses httpSMS (phone app must be online).
         </p>
         <div className="flex flex-wrap gap-2">
           <button

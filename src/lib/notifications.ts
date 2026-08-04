@@ -100,29 +100,80 @@ export async function sendSMS(to: string, message: string) {
 }
 
 export async function sendEmail(to: string, subject: string, body: string) {
-  const resendKey = process.env.RESEND_API_KEY;
-  // Resend requires a verified domain OR use onboarding@resend.dev for tests
+  const fullBody = `${body}\n\n${SIGNATURE}`;
   const fromAddress =
     process.env.EMAIL_FROM ||
+    (process.env.SMTP_USER ? `Thandizo <${process.env.SMTP_USER}>` : null) ||
     process.env.RESEND_FROM ||
     "Thandizo <onboarding@resend.dev>";
 
-  const fullBody = `${body}\n\n${SIGNATURE}`;
+  const smtpUser = process.env.SMTP_USER || process.env.GMAIL_USER;
+  const smtpPass = process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD;
+  const smtpHost = process.env.SMTP_HOST || "smtp.gmail.com";
+  const smtpPort = Number(process.env.SMTP_PORT || 465);
 
+  // Prefer Gmail / generic SMTP when configured (works without your own domain)
+  if (smtpUser && smtpPass) {
+    try {
+      const nodemailer = await import("nodemailer");
+      const transporter = nodemailer.createTransport({
+        host: smtpHost,
+        port: smtpPort,
+        secure: smtpPort === 465,
+        auth: {
+          user: smtpUser,
+          pass: smtpPass,
+        },
+      });
+
+      const info = await transporter.sendMail({
+        from: fromAddress,
+        to,
+        subject,
+        text: fullBody,
+      });
+
+      await prisma.notificationLog.create({
+        data: {
+          type: "email",
+          recipient: to,
+          message: `Subject: ${subject}\n\n${fullBody}`,
+          status: "sent:smtp:" + (info.messageId || "ok"),
+        },
+      });
+
+      return { success: true, provider: "smtp", data: { messageId: info.messageId } };
+    } catch (err: any) {
+      console.error("SMTP email error", err);
+      await prisma.notificationLog.create({
+        data: {
+          type: "email",
+          recipient: to,
+          message: fullBody,
+          status: "failed:smtp:" + (err.message || "exception").slice(0, 250),
+        },
+      });
+      return { success: false, provider: "smtp", error: err.message };
+    }
+  }
+
+  // Fallback: Resend (needs domain or only sends to your Resend account email)
+  const resendKey = process.env.RESEND_API_KEY;
   if (!resendKey) {
-    console.warn("RESEND_API_KEY not set – email logged only (not delivered)");
+    console.warn("No SMTP_USER/SMTP_PASS and no RESEND_API_KEY – email not sent");
     await prisma.notificationLog.create({
       data: {
         type: "email",
         recipient: to,
-        message: `[NOT SENT — no RESEND_API_KEY]\nSubject: ${subject}\n\n${fullBody}`,
+        message: `[NOT SENT — configure Gmail SMTP or Resend]\nSubject: ${subject}\n\n${fullBody}`,
         status: "logged_no_key",
       },
     });
     return {
       success: false,
       logged: true,
-      error: "RESEND_API_KEY missing — set it in Vercel env to send real emails",
+      error:
+        "Email not configured. Set SMTP_USER + SMTP_PASS (Gmail App Password) on Vercel, or RESEND_API_KEY.",
     };
   }
 
@@ -154,12 +205,12 @@ export async function sendEmail(to: string, subject: string, body: string) {
         recipient: to,
         message: `Subject: ${subject}\n\n${fullBody}`,
         status: success
-          ? "sent"
-          : `failed:${res.status}:${JSON.stringify(data).slice(0, 300)}`,
+          ? "sent:resend"
+          : `failed:resend:${res.status}:${JSON.stringify(data).slice(0, 250)}`,
       },
     });
 
-    return { success, data };
+    return { success, provider: "resend", data };
   } catch (err: any) {
     console.error("Resend exception", err);
     await prisma.notificationLog.create({
@@ -167,10 +218,10 @@ export async function sendEmail(to: string, subject: string, body: string) {
         type: "email",
         recipient: to,
         message: fullBody,
-        status: "failed:" + (err.message || "exception"),
+        status: "failed:resend:" + (err.message || "exception"),
       },
     });
-    return { success: false, error: err.message };
+    return { success: false, provider: "resend", error: err.message };
   }
 }
 
