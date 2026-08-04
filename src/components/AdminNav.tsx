@@ -352,79 +352,89 @@ export default function AdminNav({ email }: { email?: string | null }) {
             <motion.nav
               id="admin-mobile-menu"
               aria-label="Admin mobile"
-              className="md:hidden absolute left-0 right-0 top-full bg-stone-900 border-t border-stone-800 shadow-xl z-50 max-h-[calc(100vh-52px)] overflow-y-auto"
+              className="md:hidden fixed left-0 right-0 top-[52px] bottom-0 z-50 bg-stone-900 border-t border-stone-800 flex flex-col"
               initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
               transition={{ duration: 0.2 }}
             >
-              <form role="search" onSubmit={onSearch} className="px-4 pt-3">
-                <label htmlFor="admin-mobile-search" className="sr-only">
-                  Search
-                </label>
-                <input
-                  id="admin-mobile-search"
-                  type="search"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                  placeholder="Search projects, donors, partners…"
-                  className="w-full rounded-lg bg-stone-800 border border-stone-700 px-3 py-2 text-sm text-white placeholder:text-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
-                />
-              </form>
-
-              <div className="px-4 py-3 flex items-center gap-3 border-b border-stone-800">
-                <div
-                  className="w-10 h-10 rounded-full bg-red-700 overflow-hidden flex items-center justify-center text-sm font-semibold"
-                  aria-hidden="true"
-                >
-                  {logoUrl ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={logoUrl} alt="" className="w-full h-full object-cover" />
-                  ) : (
-                    avatar
-                  )}
+              {/* Fixed top: search + account */}
+              <div className="shrink-0 border-b border-stone-800 bg-stone-900 px-4 pt-3 pb-3 space-y-3">
+                <form role="search" onSubmit={onSearch}>
+                  <label htmlFor="admin-mobile-search" className="sr-only">
+                    Search
+                  </label>
+                  <input
+                    id="admin-mobile-search"
+                    type="search"
+                    value={q}
+                    onChange={(e) => setQ(e.target.value)}
+                    placeholder="Search projects, donors, partners…"
+                    className="w-full rounded-lg bg-stone-800 border border-stone-700 px-3 py-2.5 text-sm text-white placeholder:text-stone-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                  />
+                </form>
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-9 h-9 rounded-full bg-red-700 overflow-hidden flex items-center justify-center text-sm font-semibold shrink-0"
+                    aria-hidden="true"
+                  >
+                    {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={logoUrl} alt="" className="w-full h-full object-cover" />
+                    ) : (
+                      avatar
+                    )}
+                  </div>
+                  <span className="text-sm text-stone-400 truncate">Account</span>
                 </div>
-                <span className="text-sm text-stone-400">Account</span>
               </div>
 
-              <ul className="px-4 py-2">
-                <li>
-                  <Link
-                    href="/admin"
-                    className={`block py-3 px-2 rounded-lg text-base transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
-                      pathname === "/admin"
-                        ? "bg-stone-800 text-red-300 font-medium"
-                        : "hover:bg-stone-800"
-                    }`}
-                  >
-                    Dashboard
-                  </Link>
-                </li>
-                {groups.map((g) => (
-                  <li key={g.id} className="mt-2">
-                    <p className="px-2 text-xs uppercase tracking-wide text-stone-500 mb-1">
-                      {g.label}
-                    </p>
-                    {g.items.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        className={`block py-2.5 px-2 rounded-lg text-base transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
-                          isActive(item.href)
-                            ? "bg-stone-800 text-red-300 font-medium"
-                            : "hover:bg-stone-800"
-                        }`}
-                      >
-                        {item.label}
-                      </Link>
-                    ))}
+              {/* Scrollable middle: grouped links */}
+              <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-4 py-2">
+                <ul>
+                  <li>
+                    <Link
+                      href="/admin"
+                      className={`block py-2.5 px-2 rounded-lg text-base transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+                        pathname === "/admin"
+                          ? "bg-stone-800 text-red-300 font-medium"
+                          : "hover:bg-stone-800"
+                      }`}
+                    >
+                      Dashboard
+                    </Link>
                   </li>
-                ))}
-              </ul>
-              <div className="border-t border-stone-800 px-4 py-3 space-y-2 text-sm">
+                  {groups.map((g) => (
+                    <li key={g.id} className="mt-3">
+                      <p className="px-2 text-[11px] uppercase tracking-wide text-stone-500 mb-1">
+                        {g.label}
+                      </p>
+                      {g.items.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          className={`block py-2.5 px-2 rounded-lg text-base transition focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400 ${
+                            isActive(item.href)
+                              ? "bg-stone-800 text-red-300 font-medium"
+                              : "hover:bg-stone-800"
+                          }`}
+                        >
+                          {item.label}
+                        </Link>
+                      ))}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* Fixed bottom: view site + sign out */}
+              <div
+                className="shrink-0 border-t border-stone-800 bg-stone-950 px-4 py-3 space-y-1 text-sm"
+                style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
+              >
                 <Link
                   href="/"
-                  className="block py-2 px-2 rounded-lg hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
+                  className="block py-2.5 px-2 rounded-lg hover:bg-stone-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-400"
                 >
                   View site
                 </Link>
