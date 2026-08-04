@@ -75,8 +75,11 @@ export default async function DeveloperDashboard() {
                   </p>
                 </div>
                 <div className="rounded-lg bg-stone-50 p-3">
-                  <p className="text-xs text-stone-500">Work progress</p>
-                  <p className="font-semibold">{p.workProgress}%</p>
+                  <p className="text-xs text-stone-500">Withdrawn / Fees</p>
+                  <p className="font-semibold text-xs">
+                    {formatCurrency(money.withdrawn || 0, money.currency)} /{" "}
+                    {formatCurrency(money.fees || 0, money.currency)}
+                  </p>
                 </div>
               </div>
               <div className="mt-3 h-2 rounded-full bg-stone-100 overflow-hidden">

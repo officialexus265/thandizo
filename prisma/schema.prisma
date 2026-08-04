@@ -70,6 +70,7 @@ model Project {
   partnerInterests PartnerInterest[]
   refundBatches    RefundBatch[]
   targetChangeRequests TargetChangeRequest[]
+  withdrawals          Withdrawal[]
 }
 
 enum ProjectStatus {
@@ -292,11 +293,13 @@ model Developer {
   kycNotes         String?   @db.Text
   kycSubmittedAt   DateTime?
   kycReviewedAt    DateTime?
+  payoutPhone      String?  // mobile money number for withdrawals
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   projects            Project[]
   targetChangeRequests TargetChangeRequest[]
+  withdrawals          Withdrawal[]
 }
 
 enum KycStatus {
@@ -335,4 +338,30 @@ model TargetChangeRequest {
   adminNote     String?
   createdAt     DateTime @default(now())
   reviewedAt    DateTime?
+}
+
+
+model Withdrawal {
+  id           String           @id @default(cuid())
+  projectId    String
+  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  developerId  String
+  developer    Developer        @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  amount       Decimal          @db.Decimal(12, 2) // paid to owner
+  currency     String           @default("MWK")
+  phone        String
+  status       WithdrawalStatus @default(PENDING)
+  payoutRef    String?
+  payoutError  String?
+  note         String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  completedAt  DateTime?
+}
+
+enum WithdrawalStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
 }

@@ -3,7 +3,6 @@ import { randomBytes } from "crypto";
 import { prisma } from "./prisma";
 
 export function generateAccessCode(): string {
-  // 10-char readable code (no ambiguous chars)
   const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
   const bytes = randomBytes(10);
   let out = "";
@@ -19,7 +18,6 @@ export async function verifyAccessCode(code: string, hash: string) {
   return bcrypt.compare(code.trim().toUpperCase(), hash);
 }
 
-/** Create or update developer and return plaintext code once */
 export async function ensureDeveloperWithCode(params: {
   name: string;
   email: string;
@@ -53,29 +51,72 @@ export async function ensureDeveloperWithCode(params: {
   return { developerId: d.id, accessCode: code, isNew: true };
 }
 
+/**
+ * Money summary for a project.
+ * collected = gross SUCCESS donations
+ * fees = platform fees on SUCCESS
+ * netCollected = net toward campaign
+ * held = HOLD net (not withdrawable yet)
+ * available = DIRECT net minus successful withdrawals
+ * withdrawn = sum of SUCCESS withdrawals
+ */
 export async function projectMoneySummary(projectId: string) {
   const donations = await prisma.donation.findMany({
     where: { projectId, status: "SUCCESS" },
-    select: { amount: true, fundMode: true, currency: true },
+    select: {
+      amount: true,
+      netAmount: true,
+      platformFeeAmount: true,
+      fundMode: true,
+      currency: true,
+    },
+  });
+
+  const withdrawals = await prisma.withdrawal.findMany({
+    where: {
+      projectId,
+      status: { in: ["SUCCESS", "PROCESSING", "PENDING"] },
+    },
+    select: { amount: true, status: true },
   });
 
   let collected = 0;
+  let fees = 0;
+  let netCollected = 0;
   let held = 0;
-  let available = 0; // DIRECT = released to project / withdrawable under your rules
+  let directNet = 0;
   let currency = "MWK";
 
   for (const d of donations) {
-    const n = Number(d.amount);
+    const gross = Number(d.amount);
+    const net = Number(d.netAmount) || gross;
+    const fee = Number(d.platformFeeAmount) || 0;
     currency = d.currency || currency;
-    collected += n;
-    if (d.fundMode === "HOLD") held += n;
-    else available += n;
+    collected += gross;
+    fees += fee;
+    netCollected += net;
+    if (d.fundMode === "HOLD") held += net;
+    else directNet += net;
   }
+
+  let withdrawn = 0;
+  let pendingWithdraw = 0;
+  for (const w of withdrawals) {
+    const n = Number(w.amount);
+    if (w.status === "SUCCESS") withdrawn += n;
+    else pendingWithdraw += n;
+  }
+
+  const available = Math.max(0, Math.round((directNet - withdrawn - pendingWithdraw) * 100) / 100);
 
   return {
     collected,
+    fees,
+    netCollected,
     held,
     available,
+    withdrawn,
+    pendingWithdraw,
     currency,
     donationCount: donations.length,
   };

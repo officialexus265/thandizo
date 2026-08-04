@@ -29,6 +29,7 @@ const groups: NavGroup[] = [
     items: [
       { href: "/admin/notify", label: "Notify" },
       { href: "/admin/refunds", label: "Refunds" },
+      { href: "/admin/withdrawals", label: "Withdrawals" },
       { href: "/admin/search", label: "Search" },
     ],
   },
