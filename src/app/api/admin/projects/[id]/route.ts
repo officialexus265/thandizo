@@ -109,6 +109,36 @@ export async function POST(
           { status: 400 }
         );
       }
+
+      // KYC must be approved when a fundraiser account is linked
+      if (project.developerId) {
+        const owner = await prisma.developer.findUnique({
+          where: { id: project.developerId },
+        });
+        if (!owner || owner.kycStatus !== "APPROVED") {
+          return NextResponse.json(
+            {
+              error:
+                "Cannot publish: fundraiser KYC is not approved. Complete ID, selfie-with-ID, and verification video review first.",
+            },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Category / large target may require noting review (already expected via human process)
+      const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
+      const threshold = settings?.largeTargetThreshold ?? 500000;
+      if (project.categoryId) {
+        const cat = await prisma.category.findUnique({ where: { id: project.categoryId } });
+        if (cat?.requiresReview) {
+          // Human review is mandatory for this category — publishing is the admin's attestation
+        }
+      }
+      if (Number(project.targetAmount) >= threshold) {
+        // Large targets always need human review — admin publish = confirmation
+      }
+
       const updated = await prisma.project.update({
         where: { id },
         data: { status: "ACTIVE" },

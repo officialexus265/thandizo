@@ -160,6 +160,11 @@ export default async function HomePage() {
         </p>
         <p className="mt-1">Inu ndi thandizo lathu</p>
         <p className="mt-2">
+          <Link href="/legal" className="hover:text-white transition">
+            Trust & liability
+          </Link>
+        </p>
+        <p className="mt-2">
           <Link href="/admin" className="hover:text-white transition">
             Admin
           </Link>

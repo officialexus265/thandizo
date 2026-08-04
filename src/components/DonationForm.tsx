@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import Link from "next/link";
+import { DEFAULT_DONOR_DISCLAIMER } from "@/lib/legal";
 
 interface Props {
   projectId: string;
@@ -25,6 +27,7 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
   const [preferredContact, setPreferredContact] = useState<"NONE" | "EMAIL" | "SMS" | "BOTH">("NONE");
   const [fundMode, setFundMode] = useState<"HOLD" | "DIRECT">("HOLD");
   const [message, setMessage] = useState("");
+  const [acceptRisk, setAcceptRisk] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +47,10 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
         toast.error("Phone number is required for the selected communication preference");
         return;
       }
+    }
+    if (!acceptRisk) {
+      toast.error("Please confirm you understand the donor risks before continuing");
+      return;
     }
 
     setLoading(true);
@@ -225,9 +232,33 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
         />
       </div>
 
+      <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-stone-800 space-y-2">
+        <p className="font-semibold text-amber-950">Before you donate</p>
+        <p className="leading-relaxed whitespace-pre-wrap line-clamp-6">{DEFAULT_DONOR_DISCLAIMER}</p>
+        <p>
+          <Link href="/legal" className="text-red-700 underline font-medium" target="_blank">
+            Read full trust &amp; liability notice
+          </Link>
+        </p>
+        <label className="flex items-start gap-2 cursor-pointer pt-1">
+          <input
+            type="checkbox"
+            checked={acceptRisk}
+            onChange={(e) => setAcceptRisk(e.target.checked)}
+            className="mt-0.5 rounded border-stone-400"
+            required
+          />
+          <span>
+            I understand that admin approval does not eliminate fraud risk, that I should only
+            fund campaigns I understand, and that Thandizo / admins are not liable for how a
+            fundraiser uses withdrawn funds.
+          </span>
+        </label>
+      </div>
+
       <button
         type="submit"
-        disabled={loading}
+        disabled={loading || !acceptRisk}
         className="w-full py-3 rounded-lg bg-red-700 text-white font-semibold hover:bg-red-800 disabled:opacity-60 transition"
       >
         {loading ? "Redirecting to payment..." : `Donate with PayChangu`}

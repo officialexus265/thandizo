@@ -25,6 +25,9 @@ export default async function DeveloperPortalLayout({
             <Link href="/developer" className="text-sm text-stone-300 hover:text-white">
               Dashboard
             </Link>
+            <Link href="/developer/kyc" className="text-sm text-stone-300 hover:text-white">
+              KYC
+            </Link>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-stone-400 truncate max-w-[140px]">

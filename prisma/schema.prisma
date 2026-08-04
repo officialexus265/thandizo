@@ -29,6 +29,8 @@ model SiteSettings {
   refundFeePercent Float  @default(10)
   adminPhone   String?
   callWindow   String?  // e.g. "Mon–Fri 9:00–12:00 CAT"
+  largeTargetThreshold Float @default(500000) // MWK — above this always needs human review
+  donorDisclaimer String? @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -39,6 +41,8 @@ model Project {
   slug         String        @unique
   developerName String?
   developerId  String?
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
   developer    Developer? @relation(fields: [developerId], references: [id], onDelete: SetNull)
   workProgress Int      @default(0)
   progressNote String?
@@ -244,6 +248,7 @@ model ProjectSubmission {
   developerName   String
   developerEmail  String
   developerPhone  String?
+  categoryId      String?
   shortDesc       String
   fullDesc        String   @db.Text
   targetAmount    Decimal  @db.Decimal(12, 2)
@@ -270,12 +275,46 @@ model Developer {
   email         String   @unique
   phone         String?
   accessCodeHash String
+  // KYC — required before publish for all fundraisers
+  fullLegalName    String?
+  nationalIdNumber String?  // stored reference; treat as sensitive
+  nationalIdUrl    String?  // image of ID
+  selfieWithIdUrl  String?  // selfie holding national ID
+  videoKycUrl      String?  // video reading KYC script (EN or Chichewa)
+  videoLanguage    String?  // EN | NY (Chichewa)
+  kycStatus        KycStatus @default(PENDING)
+  kycNotes         String?   @db.Text
+  kycSubmittedAt   DateTime?
+  kycReviewedAt    DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   projects            Project[]
   targetChangeRequests TargetChangeRequest[]
 }
+
+enum KycStatus {
+  NOT_STARTED
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Category {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  description     String?
+  feePercent      Float    @default(8)
+  requiresReview  Boolean  @default(false) // medical, etc. — always human review
+  active          Boolean  @default(true)
+  sortOrder       Int      @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  projects Project[]
+}
+
 
 model TargetChangeRequest {
   id            String   @id @default(cuid())

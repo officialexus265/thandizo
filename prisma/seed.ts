@@ -35,7 +35,25 @@ async function main() {
     },
   });
 
-  console.log("Seed completed");
+  console.log("// Default fundraising categories
+  const categories = [
+    { name: "Medical", slug: "medical", feePercent: 6, requiresReview: true, sortOrder: 1 },
+    { name: "Education", slug: "education", feePercent: 6, requiresReview: true, sortOrder: 2 },
+    { name: "Church & community", slug: "church-community", feePercent: 5, requiresReview: false, sortOrder: 3 },
+    { name: "Entertainment & creative", slug: "entertainment", feePercent: 10, requiresReview: false, sortOrder: 4 },
+    { name: "Business & projects", slug: "business", feePercent: 10, requiresReview: false, sortOrder: 5 },
+    { name: "Emergency / large appeal", slug: "emergency", feePercent: 7, requiresReview: true, sortOrder: 6 },
+  ];
+  for (const c of categories) {
+    await prisma.category.upsert({
+      where: { slug: c.slug },
+      update: { feePercent: c.feePercent, requiresReview: c.requiresReview, name: c.name },
+      create: c,
+    });
+  }
+  console.log("Categories seeded");
+
+  console.log("Seed completed")");
 }
 
 main()
