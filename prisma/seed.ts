@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { DEFAULT_DONOR_DISCLAIMER } from "../src/lib/legal";
 
 const prisma = new PrismaClient();
 
@@ -24,7 +25,6 @@ async function main() {
     console.log(`Admin already exists: ${email}`);
   }
 
-  // Ensure site settings exist
   await prisma.siteSettings.upsert({
     where: { id: "default" },
     update: {},
@@ -32,10 +32,11 @@ async function main() {
       id: "default",
       siteName: "thandizo",
       contactEmail: email,
+      donorDisclaimer: DEFAULT_DONOR_DISCLAIMER,
+      largeTargetThreshold: 500000,
     },
   });
 
-  console.log("// Default fundraising categories
   const categories = [
     { name: "Medical", slug: "medical", feePercent: 6, requiresReview: true, sortOrder: 1 },
     { name: "Education", slug: "education", feePercent: 6, requiresReview: true, sortOrder: 2 },
@@ -44,16 +45,20 @@ async function main() {
     { name: "Business & projects", slug: "business", feePercent: 10, requiresReview: false, sortOrder: 5 },
     { name: "Emergency / large appeal", slug: "emergency", feePercent: 7, requiresReview: true, sortOrder: 6 },
   ];
+
   for (const c of categories) {
     await prisma.category.upsert({
       where: { slug: c.slug },
-      update: { feePercent: c.feePercent, requiresReview: c.requiresReview, name: c.name },
+      update: {
+        feePercent: c.feePercent,
+        requiresReview: c.requiresReview,
+        name: c.name,
+      },
       create: c,
     });
   }
   console.log("Categories seeded");
-
-  console.log("Seed completed")");
+  console.log("Seed completed");
 }
 
 main()
