@@ -35,6 +35,9 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [categories, setCategories] = useState<
+    { id: string; name: string; feePercent: number; requiresReview: boolean }[]
+  >([]);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState("");
 
@@ -46,6 +49,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
     targetAmount: "",
     currency: "MWK",
     status: "ACTIVE",
+    categoryId: "",
     isPinned: false,
     thumbnailUrl: "",
   });
@@ -60,6 +64,15 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
       }));
     }
   }
+
+  useEffect(() => {
+    fetch("/api/public/categories")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setCategories(d);
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch(`/api/admin/projects/${id}`)
@@ -79,6 +92,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           targetAmount: String(data.targetAmount),
           currency: data.currency,
           status: data.status,
+          categoryId: data.categoryId || "",
           isPinned: data.isPinned,
           thumbnailUrl: data.thumbnailUrl || "",
         });
@@ -304,6 +318,21 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
         </div>
 
         <div className="grid grid-cols-2 gap-4">
+          <div className="col-span-2">
+            <label className="block text-sm font-medium mb-1">Category</label>
+            <select
+              value={form.categoryId}
+              onChange={(e) => update("categoryId", e.target.value)}
+              className="w-full rounded-lg border border-stone-300 px-3 py-2 focus:ring-2 focus:ring-red-600 outline-none"
+            >
+              <option value="">Select category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name} ({c.feePercent}% fee{c.requiresReview ? ", review required" : ""})
+                </option>
+              ))}
+            </select>
+          </div>
           <div>
             <label className="block text-sm font-medium mb-1">Status</label>
             <select

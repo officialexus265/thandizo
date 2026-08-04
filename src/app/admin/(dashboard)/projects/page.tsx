@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
 import PublishProjectButton from "@/components/PublishProjectButton";
+import ReviewCompleteButton from "@/components/ReviewCompleteButton";
 
 export const dynamic = "force-dynamic";
 
@@ -60,6 +61,11 @@ export default async function AdminProjectsPage() {
                 <td className="px-4 py-3">{p.isPinned ? "Yes" : "—"}</td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-2">
+                  <ReviewCompleteButton
+                    projectId={p.id}
+                    reviewRequired={p.reviewRequired}
+                    reviewCompleted={p.reviewCompleted}
+                  />
                   <PublishProjectButton projectId={p.id} status={p.status} />
                   <Link href={`/admin/projects/${p.id}`} className="text-red-700 hover:underline text-xs">
                     Edit

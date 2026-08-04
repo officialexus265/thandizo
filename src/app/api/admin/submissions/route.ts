@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { sendEmail } from "@/lib/notifications";
 import slugify from "slugify";
 import { ensureDeveloperWithCode } from "@/lib/developer";
+import { computeReviewRequired } from "@/lib/review";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -93,17 +94,25 @@ export async function PATCH(req: NextRequest) {
       portalCode = accessCode;
       portalDeveloperId = developerId;
 
+      const reviewRequired = await computeReviewRequired({
+        categoryId: sub.categoryId,
+        targetAmount: sub.targetAmount,
+      });
+
       const project = await prisma.project.create({
         data: {
           title: sub.title,
           slug,
           developerName: sub.developerName,
           developerId,
+          categoryId: sub.categoryId || null,
           shortDesc: sub.shortDesc,
           fullDesc: sub.fullDesc,
           targetAmount: sub.targetAmount,
           currency: sub.currency,
           status: "DRAFT",
+          reviewRequired,
+          reviewCompleted: false,
         },
       });
       projectId = project.id;

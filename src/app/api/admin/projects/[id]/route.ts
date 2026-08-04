@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import slugify from "slugify";
+import { computeReviewRequired } from "@/lib/review";
 
 export async function GET(
   req: NextRequest,
@@ -39,6 +40,7 @@ export async function PUT(
       targetAmount,
       currency,
       status,
+      categoryId,
       isPinned,
       thumbnailUrl,
       pinOrder,
@@ -55,9 +57,24 @@ export async function PUT(
     if (targetAmount !== undefined) data.targetAmount = targetAmount;
     if (currency !== undefined) data.currency = currency;
     if (status !== undefined) data.status = status;
+    if (categoryId !== undefined) data.categoryId = categoryId || null;
     if (isPinned !== undefined) data.isPinned = isPinned;
     if (thumbnailUrl !== undefined) data.thumbnailUrl = thumbnailUrl;
     if (pinOrder !== undefined) data.pinOrder = pinOrder;
+
+    const existing = await prisma.project.findUnique({ where: { id } });
+    if (existing) {
+      const catId = categoryId !== undefined ? categoryId : existing.categoryId;
+      const tgt = data.targetAmount !== undefined ? data.targetAmount : existing.targetAmount;
+      data.reviewRequired = await computeReviewRequired({
+        categoryId: catId,
+        targetAmount: tgt,
+      });
+      if (data.reviewRequired && (categoryId !== undefined || data.targetAmount !== undefined)) {
+        data.reviewCompleted = false;
+        data.reviewedAt = null;
+      }
+    }
 
     const project = await prisma.project.update({
       where: { id },
@@ -126,22 +143,44 @@ export async function POST(
         }
       }
 
-      // Category / large target may require noting review (already expected via human process)
+      // Recompute whether human review is required
       const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
       const threshold = settings?.largeTargetThreshold ?? 500000;
+      let needsReview = project.reviewRequired;
       if (project.categoryId) {
         const cat = await prisma.category.findUnique({ where: { id: project.categoryId } });
-        if (cat?.requiresReview) {
-          // Human review is mandatory for this category — publishing is the admin's attestation
-        }
+        if (cat?.requiresReview) needsReview = true;
       }
-      if (Number(project.targetAmount) >= threshold) {
-        // Large targets always need human review — admin publish = confirmation
+      if (Number(project.targetAmount) >= Number(threshold)) needsReview = true;
+
+      if (needsReview && !project.reviewCompleted) {
+        return NextResponse.json(
+          {
+            error:
+              "Cannot publish: human review is required for this campaign (medical / large appeal / large target). Mark review as completed first.",
+          },
+          { status: 400 }
+        );
       }
 
       const updated = await prisma.project.update({
         where: { id },
-        data: { status: "ACTIVE" },
+        data: {
+          status: "ACTIVE",
+          reviewRequired: needsReview,
+        },
+      });
+      return NextResponse.json({ success: true, project: updated });
+    }
+
+    if (action === "complete-review") {
+      const updated = await prisma.project.update({
+        where: { id },
+        data: {
+          reviewRequired: true,
+          reviewCompleted: true,
+          reviewedAt: new Date(),
+        },
       });
       return NextResponse.json({ success: true, project: updated });
     }

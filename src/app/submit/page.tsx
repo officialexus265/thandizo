@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, useEffect, FormEvent } from "react";
 import Header from "@/components/Header";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -8,8 +8,10 @@ import { toast } from "sonner";
 export default function SubmitProjectPage() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
+  const [categories, setCategories] = useState<{ id: string; name: string; feePercent: number; requiresReview: boolean }[]>([]);
   const [form, setForm] = useState({
     title: "",
+    categoryId: "",
     developerName: "",
     developerEmail: "",
     developerPhone: "",
@@ -18,6 +20,15 @@ export default function SubmitProjectPage() {
     targetAmount: "",
     currency: "MWK",
   });
+
+  useEffect(() => {
+    fetch("/api/public/categories")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setCategories(d);
+      })
+      .catch(() => {});
+  }, []);
 
   function update(key: string, value: string) {
     setForm((f) => ({ ...f, [key]: value }));
@@ -115,6 +126,24 @@ export default function SubmitProjectPage() {
                 />
               </div>
             </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Category *</label>
+              <select
+                required
+                value={form.categoryId}
+                onChange={(e) => update("categoryId", e.target.value)}
+                className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm focus:ring-2 focus:ring-red-600 outline-none"
+              >
+                <option value="">Select category</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name} ({c.feePercent}% platform fee
+                    {c.requiresReview ? " · human review required" : ""})
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div>
               <label className="block text-sm font-medium mb-1">Short description *</label>
               <textarea

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -28,6 +28,18 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
   const [fundMode, setFundMode] = useState<"HOLD" | "DIRECT">("HOLD");
   const [message, setMessage] = useState("");
   const [acceptRisk, setAcceptRisk] = useState(false);
+  const [feePercent, setFeePercent] = useState(0);
+  const [categoryName, setCategoryName] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch(`/api/public/project-fee?projectId=${projectId}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (typeof d.feePercent === "number") setFeePercent(d.feePercent);
+        if (d.categoryName) setCategoryName(d.categoryName);
+      })
+      .catch(() => {});
+  }, [projectId]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,6 +81,7 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
           preferredContact,
           fundMode,
           message: message || null,
+          acceptedRisk: true,
         }),
       });
 
@@ -231,6 +244,32 @@ export default function DonationForm({ projectId, projectTitle, projectSlug, cur
           placeholder="Leave a short note of support..."
         />
       </div>
+
+      {Number(amount) > 0 && (
+        <div className="rounded-xl border border-stone-200 bg-stone-50 p-3 text-xs text-stone-700 space-y-1">
+          <p className="font-semibold text-stone-900">Donation breakdown</p>
+          <p>You pay: <strong>{currency} {Number(amount).toLocaleString()}</strong></p>
+          <p>
+            Platform fee{categoryName ? ` (${categoryName})` : ""}:{" "}
+            <strong>
+              {feePercent}% ≈ {currency}{" "}
+              {((Number(amount) * feePercent) / 100).toLocaleString(undefined, {
+                maximumFractionDigits: 2,
+              })}
+            </strong>
+          </p>
+          <p>
+            Toward campaign:{" "}
+            <strong>
+              {currency}{" "}
+              {(
+                Number(amount) -
+                (Number(amount) * feePercent) / 100
+              ).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+            </strong>
+          </p>
+        </div>
+      )}
 
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-stone-800 space-y-2">
         <p className="font-semibold text-amber-950">Before you donate</p>

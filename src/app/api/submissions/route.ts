@@ -5,6 +5,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const title = String(body.title || "").trim();
+    const categoryId = body.categoryId ? String(body.categoryId) : null;
     const developerName = String(body.developerName || "").trim();
     const developerEmail = String(body.developerEmail || "").trim();
     const developerPhone = body.developerPhone
@@ -17,7 +18,7 @@ export async function POST(req: NextRequest) {
       : "MWK";
     const targetAmount = Number(body.targetAmount);
 
-    if (!title || !developerName || !developerEmail || !shortDesc || !fullDesc) {
+    if (!title || !developerName || !developerEmail || !shortDesc || !fullDesc || !categoryId) {
       return NextResponse.json(
         { error: "Please fill in all required fields." },
         { status: 400 }
@@ -36,6 +37,7 @@ export async function POST(req: NextRequest) {
     const submission = await prisma.projectSubmission.create({
       data: {
         title,
+        categoryId,
         developerName,
         developerEmail,
         developerPhone,

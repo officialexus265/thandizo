@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import slugify from "slugify";
@@ -15,9 +15,20 @@ export default function NewProjectPage() {
     fullDesc: "",
     targetAmount: "",
     currency: "MWK",
-    status: "ACTIVE",
+    status: "DRAFT",
     isPinned: false,
+    categoryId: "",
   });
+  const [categories, setCategories] = useState<{ id: string; name: string; feePercent: number; requiresReview: boolean }[]>([]);
+
+  useEffect(() => {
+    fetch("/api/public/categories")
+      .then((r) => r.json())
+      .then((d) => {
+        if (Array.isArray(d)) setCategories(d);
+      })
+      .catch(() => {});
+  }, []);
 
   function update(field: string, value: any) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -124,6 +135,23 @@ export default function NewProjectPage() {
           </div>
         </div>
 
+        <div>
+          <label className="block text-sm font-medium mb-1">Category *</label>
+          <select
+            required
+            value={form.categoryId}
+            onChange={(e) => update("categoryId", e.target.value)}
+            className="w-full rounded-lg border border-stone-300 px-3 py-2 focus:ring-2 focus:ring-red-600 outline-none"
+          >
+            <option value="">Select category</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name} ({c.feePercent}% fee{c.requiresReview ? ", review required" : ""})
+              </option>
+            ))}
+          </select>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <div>
             <label className="block text-sm font-medium mb-1">Status</label>
@@ -132,6 +160,7 @@ export default function NewProjectPage() {
               onChange={(e) => update("status", e.target.value)}
               className="w-full rounded-lg border border-stone-300 px-3 py-2 focus:ring-2 focus:ring-red-600 outline-none"
             >
+              <option value="DRAFT">Draft (not public)</option>
               <option value="ACTIVE">Active</option>
               <option value="FUNDED">Funded</option>
               <option value="CLOSED">Closed</option>

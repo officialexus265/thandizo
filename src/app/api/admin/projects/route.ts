@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import slugify from "slugify";
+import { computeReviewRequired } from "@/lib/review";
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -12,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const { title, developerName, shortDesc, fullDesc, targetAmount, currency, status, isPinned, slug: providedSlug } = body;
+    const { title, developerName, shortDesc, fullDesc, targetAmount, currency, status, isPinned, slug: providedSlug, categoryId } = body;
 
     if (!title || !shortDesc || !fullDesc || !targetAmount) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -26,10 +27,16 @@ export async function POST(req: NextRequest) {
       slug = `${slug}-${Date.now().toString(36)}`;
     }
 
+    const reviewRequired = await computeReviewRequired({
+      categoryId: categoryId || null,
+      targetAmount,
+    });
+
     const project = await prisma.project.create({
       data: {
         title,
         developerName: developerName || null,
+        categoryId: categoryId || null,
         slug,
         shortDesc,
         fullDesc,
@@ -38,6 +45,8 @@ export async function POST(req: NextRequest) {
         status: status || "ACTIVE",
         isPinned: !!isPinned,
         pinOrder: isPinned ? 1 : 0,
+        reviewRequired,
+        reviewCompleted: false,
       },
     });
 

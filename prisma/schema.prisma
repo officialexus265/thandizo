@@ -56,6 +56,9 @@ model Project {
   isPinned     Boolean       @default(false)
   pinOrder     Int           @default(0)
   thumbnailUrl String?
+  reviewRequired  Boolean  @default(false)
+  reviewCompleted Boolean  @default(false)
+  reviewedAt      DateTime?
   // Refund / legitimacy
   flagReason   String?       @db.Text
   flaggedAt    DateTime?
@@ -111,6 +114,9 @@ model Donation {
   status           DonationStatus    @default(PENDING)
   // HOLD = eligible for refund until project closes; DIRECT = released, not refundable
   fundMode         FundMode          @default(HOLD)
+  platformFeePercent Float            @default(0)
+  platformFeeAmount  Decimal          @default(0) @db.Decimal(12, 2)
+  netAmount          Decimal          @default(0) @db.Decimal(12, 2)
   refundItemId     String?
   refundItem       RefundItem?       @relation(fields: [refundItemId], references: [id])
   createdAt        DateTime          @default(now())
@@ -282,7 +288,7 @@ model Developer {
   selfieWithIdUrl  String?  // selfie holding national ID
   videoKycUrl      String?  // video reading KYC script (EN or Chichewa)
   videoLanguage    String?  // EN | NY (Chichewa)
-  kycStatus        KycStatus @default(PENDING)
+  kycStatus        KycStatus @default(NOT_STARTED)
   kycNotes         String?   @db.Text
   kycSubmittedAt   DateTime?
   kycReviewedAt    DateTime?
