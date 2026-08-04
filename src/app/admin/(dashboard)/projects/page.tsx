@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { formatCurrency } from "@/lib/utils";
+import PublishProjectButton from "@/components/PublishProjectButton";
 
 export const dynamic = "force-dynamic";
 
@@ -44,6 +45,8 @@ export default async function AdminProjectsPage() {
                         ? "bg-green-100 text-green-800"
                         : p.status === "FUNDED"
                         ? "bg-blue-100 text-blue-800"
+                        : p.status === "DRAFT"
+                        ? "bg-amber-100 text-amber-900"
                         : "bg-stone-100 text-stone-600"
                     }`}
                   >
@@ -56,9 +59,12 @@ export default async function AdminProjectsPage() {
                 <td className="px-4 py-3">{p.donorCount}</td>
                 <td className="px-4 py-3">{p.isPinned ? "Yes" : "—"}</td>
                 <td className="px-4 py-3 text-right">
-                  <Link href={`/admin/projects/${p.id}`} className="text-red-700 hover:underline">
+                  <div className="flex items-center justify-end gap-2">
+                  <PublishProjectButton projectId={p.id} status={p.status} />
+                  <Link href={`/admin/projects/${p.id}`} className="text-red-700 hover:underline text-xs">
                     Edit
                   </Link>
+                  </div>
                 </td>
               </tr>
             ))}

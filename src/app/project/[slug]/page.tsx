@@ -75,7 +75,11 @@ export default async function ProjectPage({ params }: Props) {
   const { slug } = await params;
   const [project, settings] = await Promise.all([getProject(slug), getSettings()]);
 
-  if (!project) notFound();
+  if (!project) notFound()
+  // Drafts are not public until admin publishes after the call
+  if (project.status === "DRAFT" || project.status === "FLAGGED") {
+    notFound()
+  };
 
   const partners = await getProjectPartners(project.id);
 

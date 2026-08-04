@@ -20,7 +20,8 @@ export default async function GalleryPage({ params }: Props) {
     },
   });
 
-  if (!project) notFound();
+  if (!project) notFound()
+  if (project.status === "DRAFT" || project.status === "FLAGGED") notFound();
 
   const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
 

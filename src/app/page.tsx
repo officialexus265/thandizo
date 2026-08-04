@@ -13,6 +13,7 @@ export const dynamic = "force-dynamic";
 async function getProjects() {
   try {
     const projects = await prisma.project.findMany({
+      where: { status: { in: ["ACTIVE", "FUNDED"] } },
       orderBy: [
         { isPinned: "desc" },
         { pinOrder: "asc" },

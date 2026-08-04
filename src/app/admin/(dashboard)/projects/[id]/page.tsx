@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import PublishProjectButton from "@/components/PublishProjectButton";
 import Image from "next/image";
 
 interface MediaItem {
@@ -310,9 +311,11 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
               onChange={(e) => update("status", e.target.value)}
               className="w-full rounded-lg border border-stone-300 px-3 py-2 focus:ring-2 focus:ring-red-600 outline-none"
             >
-              <option value="ACTIVE">Active</option>
+              <option value="DRAFT">Draft (not public)</option>
+              <option value="ACTIVE">Active (public)</option>
               <option value="FUNDED">Funded</option>
               <option value="CLOSED">Closed</option>
+              <option value="FLAGGED">Flagged</option>
             </select>
           </div>
           <div className="flex items-end pb-2">
@@ -328,7 +331,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
 
-        <div className="flex gap-3 pt-2">
+        <div className="flex flex-wrap gap-3 pt-2 items-center">
           <button
             type="submit"
             disabled={saving}
@@ -336,6 +339,7 @@ export default function EditProjectPage({ params }: { params: Promise<{ id: stri
           >
             {saving ? "Saving..." : "Save changes"}
           </button>
+          <PublishProjectButton projectId={id} status={form.status} />
           <button
             type="button"
             onClick={() => router.push("/admin/projects")}

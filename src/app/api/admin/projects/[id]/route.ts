@@ -82,3 +82,50 @@ export async function DELETE(
   await prisma.project.delete({ where: { id } });
   return NextResponse.json({ success: true });
 }
+
+
+/** Publish a draft (or re-activate) after the developer call / checklist */
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const session = await getServerSession(authOptions);
+  if (!session || (session.user as any)?.role === "developer") {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const { id } = await params;
+  try {
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || "publish";
+
+    const project = await prisma.project.findUnique({ where: { id } });
+    if (!project) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+    if (action === "publish") {
+      if (project.status !== "DRAFT" && project.status !== "CLOSED") {
+        return NextResponse.json(
+          { error: `Cannot publish from status ${project.status}` },
+          { status: 400 }
+        );
+      }
+      const updated = await prisma.project.update({
+        where: { id },
+        data: { status: "ACTIVE" },
+      });
+      return NextResponse.json({ success: true, project: updated });
+    }
+
+    if (action === "unpublish") {
+      const updated = await prisma.project.update({
+        where: { id },
+        data: { status: "DRAFT", isPinned: false },
+      });
+      return NextResponse.json({ success: true, project: updated });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}

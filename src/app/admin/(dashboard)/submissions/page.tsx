@@ -29,7 +29,7 @@ export default function AdminSubmissionsPage() {
   const [selected, setSelected] = useState<Sub | null>(null);
   const [adminNotes, setAdminNotes] = useState("");
   const [scheduledNote, setScheduledNote] = useState("");
-  const [createLive, setCreateLive] = useState(true);
+  const [createDraft, setCreateDraft] = useState(true);
   const [acting, setActing] = useState(false);
 
   function load() {
@@ -51,7 +51,7 @@ export default function AdminSubmissionsPage() {
     if (!selected) return;
     if (action === "approve") {
       const ok = confirm(
-        "Approve this project? An email will be sent to the developer with your phone number so they can call you to schedule."
+        "Approve this submission? A DRAFT project will be created (not public). The developer will get an email with your phone number and portal access. Publish only after the call."
       );
       if (!ok) return;
     }
@@ -65,7 +65,7 @@ export default function AdminSubmissionsPage() {
           action,
           adminNotes: adminNotes || null,
           scheduledNote: scheduledNote || null,
-          createLiveProject: createLive,
+          createDraftProject: createDraft,
         }),
       });
       const data = await res.json();
@@ -208,10 +208,10 @@ export default function AdminSubmissionsPage() {
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      checked={createLive}
-                      onChange={(e) => setCreateLive(e.target.checked)}
+                      checked={createDraft}
+                      onChange={(e) => setCreateDraft(e.target.checked)}
                     />
-                    Create live project listing on approve
+                    Create draft project (not public until you Publish after the call)
                   </label>
                   <div className="flex gap-2 pt-2">
                     <button

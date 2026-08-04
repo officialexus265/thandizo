@@ -28,7 +28,7 @@ export async function PATCH(req: NextRequest) {
     const action = body.action as "approve" | "reject";
     const adminNotes = body.adminNotes ? String(body.adminNotes) : null;
     const scheduledNote = body.scheduledNote ? String(body.scheduledNote) : null;
-    const createLiveProject = body.createLiveProject !== false;
+    const createDraftProject = body.createDraftProject !== false;
 
     if (!id || !["approve", "reject"].includes(action)) {
       return NextResponse.json({ error: "Invalid request" }, { status: 400 });
@@ -80,7 +80,7 @@ export async function PATCH(req: NextRequest) {
 
     let projectId: string | null = null;
 
-    if (createLiveProject) {
+    if (createDraftProject) {
       let slug = slugify(sub.title, { lower: true, strict: true });
       const existing = await prisma.project.findUnique({ where: { slug } });
       if (existing) slug = `${slug}-${Date.now().toString(36)}`;
@@ -103,7 +103,7 @@ export async function PATCH(req: NextRequest) {
           fullDesc: sub.fullDesc,
           targetAmount: sub.targetAmount,
           currency: sub.currency,
-          status: "ACTIVE",
+          status: "DRAFT",
         },
       });
       projectId = project.id;
@@ -141,22 +141,23 @@ export async function PATCH(req: NextRequest) {
       sub.developerEmail,
       `Your project was approved — please call to schedule: ${sub.title}`,
       `Hello ${sub.developerName},\n\n` +
-        `Good news! Your project submission “${sub.title}” has been approved on Thandizo.\n\n` +
-        `Next step: please contact the admin by a normal phone call to confirm details and schedule next steps.\n\n` +
+        `Good news! Your project submission "${sub.title}" has been approved on Thandizo.\n\n` +
+        `It is saved as a DRAFT and is NOT public yet.\n\n` +
+        `Next step: please contact the admin by a normal phone call to confirm details. After the call, the admin will publish the project so donors can see and fund it.\n\n` +
         `${phoneLine}\n` +
         scheduleLine +
         `\nYour contact email on file: ${sub.developerEmail}\n` +
         (sub.developerPhone ? `Your phone on file: ${sub.developerPhone}\n` : "") +
         (adminNotes ? `\nMessage from admin:\n${adminNotes}\n` : "") +
         (projectId
-          ? `\nA project listing has been created on the platform for you.\n`
+          ? `\nA draft project has been prepared. It will go public only after you call the admin and they publish it.\n`
           : "") +
         (portalCode
           ? `\n--- Developer portal ---\n` +
             `Login at: ${process.env.NEXTAUTH_URL || ""}/developer/login\n` +
             `Email: ${sub.developerEmail}\n` +
             `Access code: ${portalCode}\n` +
-            `(Keep this code private. You can update progress, media, and details — target changes need admin approval.)\n`
+            `(Keep this code private. Update media and details in the portal. The project stays private until the admin publishes it after your call. Target changes need admin approval.)\n`
           : "") +
         `\nInu ndi thandizo lathu`
     );
