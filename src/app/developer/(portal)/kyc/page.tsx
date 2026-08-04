@@ -221,5 +221,3 @@ export default function DeveloperKycPage() {
     </div>
   );
 }
-EOF
-echo "written"
