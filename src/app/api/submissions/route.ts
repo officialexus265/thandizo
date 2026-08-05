@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const existingDev = await prisma.developer.findUnique({
+    const submission = const existingDev = await prisma.developer.findUnique({
       where: { email: developerEmail.toLowerCase() },
     });
     if (existingDev?.bannedAt) {
@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const submission = await prisma.projectSubmission.create({
+    await prisma.projectSubmission.create({
       data: {
         title,
         categoryId,

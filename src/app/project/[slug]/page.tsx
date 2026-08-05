@@ -165,7 +165,7 @@ export default async function ProjectPage({ params }: Props) {
         {partners.length > 0 && (
           <div className="mb-6 flex flex-wrap items-center gap-3 text-sm text-stone-600">
             <span className="font-medium">Sponsored by:</span>
-           {partners.map((p: (typeof partners)[number]) =>
+            {partners.map((p) =>
               p.websiteUrl ? (
                 <a
                   key={p.id}
@@ -223,7 +223,7 @@ export default async function ProjectPage({ params }: Props) {
           <div className="mb-10">
             <h2 className="text-lg font-semibold mb-3">Recent donations</h2>
             <ul className="space-y-2">
-              {project.donations.map((d: (typeof project.donations)[number]) => (
+              {project.donations.map((d) => (
                 <li key={d.id} className="flex justify-between text-sm bg-white border border-stone-100 rounded-lg px-3 py-2">
                   <span>
                     {d.isAnonymous || !d.donorName ? "Anonymous" : d.donorName}

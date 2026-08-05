@@ -91,10 +91,32 @@ export default function DeveloperSecurityPage() {
     const data = await res.json();
     if (!res.ok) toast.error(data.error || "Failed");
     else {
-      toast.success("Security settings saved");
+      toast.success("Saved — security alert emailed/SMS if contacts verified");
       setPassword("");
       setAnswer("");
       load();
+    }
+  }
+
+  const [confirmPw, setConfirmPw] = useState("");
+  const [newCode, setNewCode] = useState("");
+
+  async function regenerateCode() {
+    const res = await fetch("/api/developer/security", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "regenerate-access-code",
+        password: confirmPw || undefined,
+        securityAnswer: answer || undefined,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) toast.error(data.error || "Failed");
+    else {
+      setNewCode(data.accessCode || "");
+      toast.success("New access code created — check email/SMS");
+      setConfirmPw("");
     }
   }
 
@@ -206,6 +228,33 @@ export default function DeveloperSecurityPage() {
           Save
         </button>
       </form>
+
+      <section className="bg-white border rounded-xl p-5 space-y-3">
+        <h2 className="font-semibold">Regenerate access code</h2>
+        <p className="text-xs text-stone-500">
+          Creates a new portal login code and sends a security alert to your email and phone.
+          Confirm with password or security answer.
+        </p>
+        <input
+          type="password"
+          value={confirmPw}
+          onChange={(e) => setConfirmPw(e.target.value)}
+          placeholder="Current password (or fill security answer above)"
+          className="w-full border rounded-lg px-3 py-2 text-sm"
+        />
+        <button
+          type="button"
+          onClick={regenerateCode}
+          className="w-full py-2.5 rounded-lg border text-sm font-medium hover:bg-stone-50"
+        >
+          Generate new access code
+        </button>
+        {newCode && (
+          <p className="font-mono text-center bg-stone-100 rounded-lg p-3 font-bold tracking-wider">
+            {newCode}
+          </p>
+        )}
+      </section>
     </div>
   );
 }
