@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { sendEmail } from "@/lib/notifications";
+import { sendEmail, sendSMS } from "@/lib/notifications";
 import slugify from "slugify";
 import { ensureDeveloperWithCode } from "@/lib/developer";
 import { computeReviewRequired } from "@/lib/review";
@@ -28,7 +28,6 @@ export async function PATCH(req: NextRequest) {
     const id = body.id as string;
     const action = body.action as "approve" | "reject";
     const adminNotes = body.adminNotes ? String(body.adminNotes) : null;
-    const scheduledNote = body.scheduledNote ? String(body.scheduledNote) : null;
     const createDraftProject = body.createDraftProject !== false;
 
     if (!id || !["approve", "reject"].includes(action)) {
@@ -62,24 +61,22 @@ export async function PATCH(req: NextRequest) {
           `Inu ndi thandizo lathu`
       );
 
+      if (sub.developerPhone) {
+        await sendSMS(
+          sub.developerPhone,
+          `Thandizo: your project submission “${sub.title}” was not approved. Check your email for details.`
+        );
+      }
+
       return NextResponse.json({ success: true, status: "REJECTED" });
     }
 
-    // APPROVE
+    // APPROVE — no phone call required
     let portalCode: string | null = null;
     let portalDeveloperId: string | null = null;
-    const settings = await prisma.siteSettings.findUnique({
-      where: { id: "default" },
-    });
-    const adminPhone =
-      settings?.adminPhone ||
-      process.env.ADMIN_PHONE ||
-      null;
-    const callWindow =
-      settings?.callWindow ||
-      "Please call during business hours (CAT)";
-
     let projectId: string | null = null;
+    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
+    const siteName = settings?.siteName || "thandizo";
 
     if (createDraftProject) {
       let slug = slugify(sub.title, { lower: true, strict: true });
@@ -116,14 +113,6 @@ export async function PATCH(req: NextRequest) {
         },
       });
       projectId = project.id;
-    } else {
-      const ensured = await ensureDeveloperWithCode({
-        name: sub.developerName,
-        email: sub.developerEmail,
-        phone: sub.developerPhone,
-      });
-      portalCode = ensured.accessCode;
-      portalDeveloperId = ensured.developerId;
     }
 
     await prisma.projectSubmission.update({
@@ -131,54 +120,45 @@ export async function PATCH(req: NextRequest) {
       data: {
         status: "APPROVED",
         adminNotes,
-        scheduledNote,
         reviewedAt: new Date(),
         approvedProjectId: projectId,
       },
     });
 
-    // Automatic email to developer — schedule a normal phone call
-    const phoneLine = adminPhone
-      ? `Call this number: ${adminPhone}`
-      : `Reply to this email to receive the admin’s phone number.`;
-
-    const scheduleLine = scheduledNote
-      ? `\nSuggested time / note from admin:\n${scheduledNote}\n`
-      : `\nPreferred call window: ${callWindow}\n`;
-
     await sendEmail(
       sub.developerEmail,
-      `Your project was approved — please call to schedule: ${sub.title}`,
+      `Your project was approved: ${sub.title}`,
       `Hello ${sub.developerName},\n\n` +
-        `Good news! Your project submission "${sub.title}" has been approved on Thandizo.\n\n` +
-        `It is saved as a DRAFT and is NOT public yet.\n\n` +
-        `Next step: please contact the admin by a normal phone call to confirm details. After the call, the admin will publish the project so donors can see and fund it.\n\n` +
-        `${phoneLine}\n` +
-        scheduleLine +
-        `\nYour contact email on file: ${sub.developerEmail}\n` +
-        (sub.developerPhone ? `Your phone on file: ${sub.developerPhone}\n` : "") +
-        (adminNotes ? `\nMessage from admin:\n${adminNotes}\n` : "") +
-        (projectId
-          ? `\nA draft project has been prepared. It will go public only after you call the admin and they publish it.\n`
-          : "") +
+        `Good news — your submission “${sub.title}” was approved on ${siteName}.\n\n` +
+        `It is saved as a DRAFT and is not public yet.\n\n` +
+        `Next steps (all in the portal — no phone call required):\n` +
+        `1. Sign in to the fundraiser portal\n` +
+        `2. Verify your email and phone\n` +
+        `3. Complete KYC (required before any campaign goes live)\n` +
+        `4. Set a password + security question for account recovery\n` +
+        `5. Admin publishes after review so donors can fund\n\n` +
         (portalCode
-          ? `\n--- Developer portal ---\n` +
-            `Login at: ${process.env.NEXTAUTH_URL || ""}/developer/login\n` +
-            `Email: ${sub.developerEmail}\n` +
-            `Access code: ${portalCode}\n` +
-            `(Keep this code private. Update media and details in the portal. The project stays private until the admin publishes it after your call. Target changes need admin approval.)\n`
+          ? `Your portal access code: ${portalCode}\nKeep it private.\n\n`
           : "") +
-        `\nInu ndi thandizo lathu`
+        `Inu ndi thandizo lathu`
     );
+
+    if (sub.developerPhone) {
+      await sendSMS(
+        sub.developerPhone,
+        `Thandizo: “${sub.title}” was approved as a draft. Complete KYC in the portal if needed. No phone call required.`
+      );
+    }
 
     return NextResponse.json({
       success: true,
       status: "APPROVED",
       projectId,
+      developerId: portalDeveloperId,
       emailSent: true,
     });
   } catch (err: any) {
     console.error("submission review", err);
-    return NextResponse.json({ error: err.message || "Failed" }, { status: 500 });
+    return NextResponse.json({ error: err.message || "Server error" }, { status: 500 });
   }
 }

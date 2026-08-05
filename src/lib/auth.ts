@@ -62,6 +62,7 @@ export const authOptions: NextAuthOptions = {
         const email = credentials.email.trim().toLowerCase();
         const developer = await prisma.developer.findUnique({ where: { email } });
         if (!developer) return null;
+        if (developer.bannedAt) return null;
         const ok = await verifyAccessCode(credentials.accessCode, developer.accessCodeHash);
         if (!ok) return null;
         return {

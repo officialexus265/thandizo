@@ -51,7 +51,7 @@ export default function AdminSubmissionsPage() {
     if (!selected) return;
     if (action === "approve") {
       const ok = confirm(
-        "Approve this submission? A DRAFT project will be created (not public). The developer will get an email with your phone number and portal access. Publish only after the call."
+        "Approve this submission? A DRAFT project will be created (not public). The fundraiser gets portal access by email. They must verify email/phone, complete KYC, then you Publish after review — no phone call required."
       );
       if (!ok) return;
     }
@@ -90,8 +90,7 @@ export default function AdminSubmissionsPage() {
     <div>
       <h1 className="text-2xl font-bold mb-1">Project submissions</h1>
       <p className="text-sm text-stone-500 mb-6">
-        Developers submit projects for review. On approve, they get an email with your phone number
-        and are asked to call you to schedule next steps. Set your phone under Settings.
+        Developers submit for review. On approve they get portal access by email. Flow: verify email/phone → KYC → you Publish. No phone call required.
       </p>
 
       <div className="flex gap-2 mb-4">
@@ -195,13 +194,13 @@ export default function AdminSubmissionsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">
-                      Suggested call time / schedule note (included in approval email)
+                      Admin note (optional, saved on submission)
                     </label>
                     <textarea
                       rows={2}
                       value={scheduledNote}
                       onChange={(e) => setScheduledNote(e.target.value)}
-                      placeholder="e.g. Please call Tuesday or Wednesday morning CAT"
+                      placeholder="Optional internal note"
                       className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm"
                     />
                   </div>
@@ -211,7 +210,7 @@ export default function AdminSubmissionsPage() {
                       checked={createDraft}
                       onChange={(e) => setCreateDraft(e.target.checked)}
                     />
-                    Create draft project (not public until you Publish after the call)
+                    Create draft project (not public until you Publish after KYC/review)
                   </label>
                   <div className="flex gap-2 pt-2">
                     <button

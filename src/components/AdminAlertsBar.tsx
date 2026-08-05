@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { toast } from "sonner";
 
 type AlertItem = {
   id: string;
@@ -14,8 +15,9 @@ type AlertItem = {
 export default function AdminAlertsBar() {
   const [items, setItems] = useState<AlertItem[]>([]);
   const [total, setTotal] = useState(0);
-  const [open, setOpen] = useState(true);
+  const [minimized, setMinimized] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   function load() {
     fetch("/api/admin/alerts")
@@ -34,50 +36,112 @@ export default function AdminAlertsBar() {
     return () => clearInterval(t);
   }, []);
 
-  if (!loaded || total === 0 || !open) {
-    if (loaded && total > 0 && !open) {
-      return (
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="fixed bottom-4 right-4 z-40 rounded-full bg-amber-600 text-white text-sm font-medium px-4 py-2 shadow-lg hover:bg-amber-700"
-        >
-          {total} pending
-        </button>
-      );
+  async function dismissOne(alertKey: string, count: number) {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "dismiss", alertKey, count }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      load();
+    } catch {
+      toast.error("Could not clear alert");
+    } finally {
+      setBusy(false);
     }
-    return null;
+  }
+
+  async function clearAll() {
+    if (!confirm("Clear all attention items? They will reappear if new ones arrive.")) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/admin/alerts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "clear-all" }),
+      });
+      if (!res.ok) throw new Error("Failed");
+      toast.success("Attention list cleared");
+      load();
+    } catch {
+      toast.error("Could not clear");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!loaded) return null;
+
+  if (total === 0) return null;
+
+  if (minimized) {
+    return (
+      <button
+        type="button"
+        onClick={() => setMinimized(false)}
+        className="fixed bottom-4 right-4 z-40 rounded-full bg-amber-600 text-white text-sm font-medium px-4 py-2 shadow-lg hover:bg-amber-700"
+      >
+        {total} pending
+      </button>
+    );
   }
 
   return (
     <div className="bg-amber-50 border-b border-amber-200">
       <div className="max-w-6xl mx-auto px-4 py-2.5 flex flex-wrap items-center gap-2 justify-between">
         <div className="flex flex-wrap items-center gap-2 text-sm">
-          <span className="font-semibold text-amber-900">Attention</span>
+          <Link href="/admin/notifications" className="font-semibold text-amber-900 hover:underline">
+            Attention
+          </Link>
           {items.map((item) => (
-            <Link
+            <span
               key={item.id}
-              href={item.href}
-              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+              className={`inline-flex items-center gap-1 rounded-full pl-2.5 pr-1 py-0.5 text-xs font-medium ${
                 item.tone === "red"
-                  ? "bg-red-100 text-red-800 hover:bg-red-200"
-                  : "bg-amber-100 text-amber-900 hover:bg-amber-200"
+                  ? "bg-red-100 text-red-800"
+                  : "bg-amber-100 text-amber-900"
               }`}
             >
-              <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/80 px-1">
-                {item.count}
-              </span>
-              {item.label}
-            </Link>
+              <Link href={item.href} className="inline-flex items-center gap-1.5 hover:underline">
+                <span className="inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-white/80 px-1">
+                  {item.count}
+                </span>
+                {item.label}
+              </Link>
+              <button
+                type="button"
+                title="Clear this alert"
+                disabled={busy}
+                onClick={() => dismissOne(item.id, item.count)}
+                className="ml-0.5 rounded-full hover:bg-black/10 px-1.5 py-0.5 text-[10px] font-bold"
+              >
+                ×
+              </button>
+            </span>
           ))}
         </div>
-        <button
-          type="button"
-          onClick={() => setOpen(false)}
-          className="text-xs text-amber-800/70 hover:text-amber-900"
-        >
-          Dismiss
-        </button>
+        <div className="flex items-center gap-2 text-xs">
+          <Link href="/admin/notifications" className="text-amber-900 underline">
+            Open inbox
+          </Link>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={clearAll}
+            className="text-amber-900 font-medium hover:underline disabled:opacity-50"
+          >
+            Clear all
+          </button>
+          <button
+            type="button"
+            onClick={() => setMinimized(true)}
+            className="text-amber-800/70 hover:text-amber-900"
+          >
+            Minimize
+          </button>
+        </div>
       </div>
     </div>
   );

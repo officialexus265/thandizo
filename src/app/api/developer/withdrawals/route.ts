@@ -4,6 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectMoneySummary } from "@/lib/developer";
 import { requestWithdrawal } from "@/lib/withdrawals";
+import { issueVerificationCode, consumeVerificationCode } from "@/lib/otp";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -32,7 +33,13 @@ export async function GET(req: NextRequest) {
 
   const developer = await prisma.developer.findUnique({
     where: { id: developerId },
-    select: { payoutPhone: true, phone: true, kycStatus: true },
+    select: {
+      payoutPhone: true,
+      phone: true,
+      kycStatus: true,
+      emailVerifiedAt: true,
+      phoneVerifiedAt: true,
+    },
   });
 
   return NextResponse.json({ withdrawals: list, money, developer });
@@ -47,30 +54,67 @@ export async function POST(req: NextRequest) {
 
   try {
     const body = await req.json();
-    const projectId = String(body.projectId || "");
-    const amount = Number(body.amount);
-    const phone = String(body.phone || "").trim();
-
-    if (!projectId || !amount || !phone) {
-      return NextResponse.json({ error: "projectId, amount, and phone required" }, { status: 400 });
-    }
+    const action = String(body.action || "withdraw");
 
     const developer = await prisma.developer.findUnique({ where: { id: developerId } });
-    if (!developer || developer.kycStatus !== "APPROVED") {
+    if (!developer) return NextResponse.json({ error: "Not found" }, { status: 404 });
+    if (developer.kycStatus !== "APPROVED") {
+      return NextResponse.json({ error: "KYC must be approved before withdrawing" }, { status: 400 });
+    }
+    if (!developer.emailVerifiedAt || !developer.phoneVerifiedAt) {
       return NextResponse.json(
-        { error: "KYC must be approved before withdrawing" },
+        { error: "Verify email and phone before withdrawing" },
         { status: 400 }
       );
     }
 
-    const result = await requestWithdrawal({
-      projectId,
-      developerId,
-      amount,
-      phone,
-    });
+    if (action === "send-otp") {
+      const phone = String(body.phone || developer.payoutPhone || developer.phone || "");
+      if (!phone) return NextResponse.json({ error: "Phone required" }, { status: 400 });
+      await issueVerificationCode({
+        developerId,
+        channel: "SMS",
+        purpose: "WITHDRAW",
+        target: phone,
+        messagePrefix: "Your Thandizo withdrawal confirmation code is",
+      });
+      return NextResponse.json({ success: true, sent: true });
+    }
 
-    return NextResponse.json({ success: true, withdrawal: result.withdrawal });
+    if (action === "withdraw") {
+      const projectId = String(body.projectId || "");
+      const amount = Number(body.amount);
+      const phone = String(body.phone || "").trim();
+      const otp = String(body.otp || "").trim();
+
+      if (!projectId || !amount || !phone || !otp) {
+        return NextResponse.json(
+          { error: "projectId, amount, phone, and OTP required" },
+          { status: 400 }
+        );
+      }
+
+      const ok = await consumeVerificationCode({
+        purpose: "WITHDRAW",
+        target: phone,
+        code: otp,
+        developerId,
+      });
+      if (!ok) {
+        return NextResponse.json({ error: "Invalid or expired withdrawal OTP" }, { status: 400 });
+      }
+
+      const result = await requestWithdrawal({
+        projectId,
+        developerId,
+        amount,
+        phone,
+      });
+
+      return NextResponse.json({ success: true, withdrawal: result.withdrawal });
+    }
+
+    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err: any) {
     return NextResponse.json({ error: err.message || "Withdrawal failed" }, { status: 400 });
   }

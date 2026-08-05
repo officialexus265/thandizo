@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifyPayChanguTransaction } from "@/lib/paychangu";
-import { sendThankYou } from "@/lib/notifications";
+import { sendThankYou, sendEmail, sendSMS } from "@/lib/notifications";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -55,6 +55,35 @@ export async function GET(req: NextRequest) {
           where: { id: donation.projectId },
           data: { status: "FUNDED" },
         });
+
+        // Notify fundraiser — project fully funded
+        if (donation.project.developerId) {
+          const owner = await prisma.developer.findUnique({
+            where: { id: donation.project.developerId },
+          });
+          if (owner && !owner.bannedAt) {
+            await sendEmail(
+              owner.email,
+              `Project fully funded: ${donation.project.title}`,
+              `Hello ${owner.name},
+
+` +
+                `Great news — “${donation.project.title}” has reached its funding target on Thandizo.
+
+` +
+                `You can review balances and request a withdrawal in the portal (OTP required).
+
+` +
+                `Inu ndi thandizo lathu`
+            );
+            if (owner.phone) {
+              await sendSMS(
+                owner.phone,
+                `Thandizo: “${donation.project.title}” is fully funded. Check the portal to withdraw.`
+              );
+            }
+          }
+        }
       }
 
       await sendThankYou({

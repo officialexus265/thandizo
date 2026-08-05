@@ -70,6 +70,10 @@ export default function DeveloperLoginPage() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
+        <p className="text-xs text-center text-stone-500 mt-4 space-x-3">
+          <a href="/developer/register" className="underline">Create account</a>
+          <a href="/developer/reset-password" className="underline">Reset password</a>
+        </p>
         <p className="mt-4 text-center text-xs text-stone-400">
           <Link href="/" className="hover:text-red-700">
             Back to site

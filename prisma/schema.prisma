@@ -28,6 +28,7 @@ model SiteSettings {
   successColor String   @default("#15803d")
   refundFeePercent Float  @default(10)
   adminPhone   String?
+  adminWhatsapp String?
   callWindow   String?  // e.g. "Mon–Fri 9:00–12:00 CAT"
   largeTargetThreshold Float @default(500000) // MWK — above this always needs human review
   donorDisclaimer String? @db.Text
@@ -278,29 +279,39 @@ enum SubmissionStatus {
 
 
 model Developer {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  phone         String?
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  phone          String?
   accessCodeHash String
-  // KYC — required before publish for all fundraisers
+  passwordHash   String?
+  // Verification
+  emailVerifiedAt DateTime?
+  phoneVerifiedAt DateTime?
+  // Security question (account recovery)
+  securityQuestion String?
+  securityAnswerHash String?
+  // KYC — required before any campaign
   fullLegalName    String?
-  nationalIdNumber String?  // stored reference; treat as sensitive
-  nationalIdUrl    String?  // image of ID
-  selfieWithIdUrl  String?  // selfie holding national ID
-  videoKycUrl      String?  // video reading KYC script (EN or Chichewa)
-  videoLanguage    String?  // EN | NY (Chichewa)
+  nationalIdNumber String?
+  nationalIdUrl    String?
+  selfieWithIdUrl  String?
+  videoKycUrl      String?
+  videoLanguage    String?
   kycStatus        KycStatus @default(NOT_STARTED)
-  kycNotes         String?   @db.Text
+  kycNote          String?
   kycSubmittedAt   DateTime?
   kycReviewedAt    DateTime?
-  payoutPhone      String?  // mobile money number for withdrawals
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  payoutPhone      String?
+  bannedAt         DateTime?
+  banReason        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
-  projects            Project[]
+  projects             Project[]
   targetChangeRequests TargetChangeRequest[]
   withdrawals          Withdrawal[]
+  verificationCodes    VerificationCode[]
 }
 
 enum KycStatus {
@@ -378,4 +389,32 @@ model CampaignUpdate {
   isPublic    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+
+model AlertDismissal {
+  id             String   @id @default(cuid())
+  scope          String   // "admin" or "developer:<id>"
+  alertKey       String
+  countAtDismiss Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([scope, alertKey])
+}
+
+
+model VerificationCode {
+  id          String   @id @default(cuid())
+  developerId String?
+  developer   Developer? @relation(fields: [developerId], references: [id], onDelete: Cascade)
+  channel     String   // EMAIL | SMS
+  purpose     String   // SIGNUP_EMAIL | SIGNUP_PHONE | WITHDRAW | RESET
+  target      String   // email or phone the code was sent to
+  codeHash    String
+  expiresAt   DateTime
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([target, purpose])
 }

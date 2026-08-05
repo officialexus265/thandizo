@@ -31,6 +31,15 @@ export default async function DeveloperPortalLayout({
             <Link href="/developer/withdrawals" className="text-sm text-stone-300 hover:text-white">
               Withdraw
             </Link>
+            <Link href="/developer/notifications" className="text-sm text-stone-300 hover:text-white">
+              Inbox
+            </Link>
+            <Link href="/developer/security" className="text-sm text-stone-300 hover:text-white">
+              Security
+            </Link>
+            <Link href="/developer/ledger" className="text-sm text-stone-300 hover:text-white">
+              Ledger
+            </Link>
           </div>
           <div className="flex items-center gap-3 text-sm">
             <span className="text-stone-400 truncate max-w-[140px]">

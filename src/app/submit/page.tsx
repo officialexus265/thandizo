@@ -5,6 +5,7 @@ import Header from "@/components/Header";
 import Link from "next/link";
 import { toast } from "sonner";
 
+// Note: API requires existing account with KYC APPROVED
 export default function SubmitProjectPage() {
   const [saving, setSaving] = useState(false);
   const [done, setDone] = useState(false);
@@ -58,6 +59,8 @@ export default function SubmitProjectPage() {
   }
 
   return (
+    //
+    
     <>
       <Header />
       <main className="flex-1 max-w-2xl mx-auto px-4 py-10 w-full">

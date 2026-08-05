@@ -93,7 +93,7 @@ export default function DeveloperKycPage() {
     <div className="max-w-xl">
       <h1 className="text-2xl font-bold">Identity verification (KYC)</h1>
       <p className="text-sm text-stone-500 mt-1 mb-4">
-        Required before a campaign can be published. Status: <strong>{status}</strong>
+        Required before any campaign can be published or funds withdrawn. Complete email & phone verification under Security first. Status: <strong>{status}</strong>
       </p>
 
       {status === "APPROVED" && (

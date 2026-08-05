@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { sendEmail, sendSMS } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,7 +35,33 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const submission = await prisma.projectSubmission.create({
+    const submission = const existingDev = await prisma.developer.findUnique({
+      where: { email: developerEmail.toLowerCase() },
+    });
+    if (existingDev?.bannedAt) {
+      return NextResponse.json({ error: "This account is banned" }, { status: 403 });
+    }
+    if (existingDev && existingDev.kycStatus !== "APPROVED") {
+      return NextResponse.json(
+        {
+          error:
+            "Complete and get KYC approved before submitting a campaign. Sign in to the fundraiser portal → KYC.",
+        },
+        { status: 400 }
+      );
+    }
+    if (!existingDev) {
+      return NextResponse.json(
+        {
+          error:
+            "Create a fundraiser account first, verify email/phone, complete KYC, then submit a project.",
+          registerUrl: "/developer/register",
+        },
+        { status: 400 }
+      );
+    }
+
+    await prisma.projectSubmission.create({
       data: {
         title,
         categoryId,

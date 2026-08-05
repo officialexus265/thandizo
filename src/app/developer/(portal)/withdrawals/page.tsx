@@ -16,6 +16,8 @@ export default function DeveloperWithdrawalsPage() {
   const [amount, setAmount] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [otp, setOtp] = useState("");
+  const [otpSent, setOtpSent] = useState(false);
 
   useEffect(() => {
     fetch("/api/developer/my-projects")
@@ -47,6 +49,26 @@ export default function DeveloperWithdrawalsPage() {
     if (projectId) load(projectId);
   }, [projectId]);
 
+  async function sendOtp() {
+    if (!phone) {
+      toast.error("Enter mobile money number first");
+      return;
+    }
+    try {
+      const res = await fetch("/api/developer/withdrawals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "send-otp", phone }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Could not send OTP");
+      setOtpSent(true);
+      toast.success("Withdrawal OTP sent by SMS");
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  }
+
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const n = Number(amount);
@@ -58,17 +80,29 @@ export default function DeveloperWithdrawalsPage() {
       toast.error("Enter your mobile money number");
       return;
     }
+    if (!otp) {
+      toast.error("Enter the SMS OTP to confirm withdrawal");
+      return;
+    }
     setSubmitting(true);
     try {
       const res = await fetch("/api/developer/withdrawals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, amount: n, phone }),
+        body: JSON.stringify({
+          action: "withdraw",
+          projectId,
+          amount: n,
+          phone,
+          otp,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Withdrawal failed");
       toast.success("Withdrawal sent to your mobile money");
       setAmount("");
+      setOtp("");
+      setOtpSent(false);
       load(projectId);
     } catch (err: any) {
       toast.error(err.message);
@@ -156,12 +190,33 @@ export default function DeveloperWithdrawalsPage() {
             className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
           />
         </div>
+        <div className="flex gap-2 items-end">
+          <div className="flex-1">
+            <label className="text-sm font-medium">Withdrawal OTP (SMS)</label>
+            <input
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
+              placeholder="6-digit code"
+              className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={sendOtp}
+            className="px-3 py-2 rounded-lg border text-sm font-medium hover:bg-stone-50"
+          >
+            {otpSent ? "Resend OTP" : "Send OTP"}
+          </button>
+        </div>
+        <p className="text-xs text-stone-500">
+          Platform fee is already taken from each donation. OTP confirms this withdrawal.
+        </p>
         <button
           type="submit"
           disabled={submitting || !projectId}
           className="w-full py-2.5 rounded-lg bg-stone-900 text-white text-sm font-medium disabled:opacity-60"
         >
-          {submitting ? "Processing…" : "Withdraw to mobile money"}
+          {submitting ? "Processing…" : "Confirm withdraw"}
         </button>
       </form>
 
