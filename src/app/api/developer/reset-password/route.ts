@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { generateAccessCode, hashAccessCode } from "@/lib/developer";
-import { sendEmail, sendSMS } from "@/lib/notifications";
+import { sendEmail, sendSMS, sendSecurityAlert } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
