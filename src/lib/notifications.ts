@@ -261,32 +261,3 @@ export async function sendThankYou(donation: {
 
   return results;
 }
-
-/** Email + SMS when password / access code / security settings change */
-export async function sendSecurityAlert(params: {
-  email: string;
-  phone?: string | null;
-  name: string;
-  event: string;
-  detail?: string;
-}) {
-  const body =
-    "Hello " +
-    params.name +
-    ",\n\nSecurity alert: " +
-    params.event +
-    "\n\n" +
-    (params.detail ? params.detail + "\n\n" : "") +
-    "If this was not you, reset your password using your security question and contact support immediately.\n\n" +
-    "Inu ndi thandizo lathu";
-
-  await sendEmail(params.email, "Thandizo security alert: " + params.event, body);
-  if (params.phone) {
-    await sendSMS(
-      params.phone,
-      "Thandizo security: " +
-        params.event +
-        ". If this was not you, reset password and contact support."
-    );
-  }
-}
