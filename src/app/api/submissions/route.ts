@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { sendEmail, sendSMS } from "@/lib/notifications";
+import { sendEmail } from "@/lib/notifications";
 
 export async function POST(req: NextRequest) {
   try {
@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     const title = String(body.title || "").trim();
     const categoryId = body.categoryId ? String(body.categoryId) : null;
     const developerName = String(body.developerName || "").trim();
-    const developerEmail = String(body.developerEmail || "").trim();
+    const developerEmail = String(body.developerEmail || "").trim().toLowerCase();
     const developerPhone = body.developerPhone
       ? String(body.developerPhone).trim()
       : null;
@@ -35,20 +35,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const submission = const existingDev = await prisma.developer.findUnique({
-      where: { email: developerEmail.toLowerCase() },
+    const existingDev = await prisma.developer.findUnique({
+      where: { email: developerEmail },
     });
     if (existingDev?.bannedAt) {
       return NextResponse.json({ error: "This account is banned" }, { status: 403 });
-    }
-    if (existingDev && existingDev.kycStatus !== "APPROVED") {
-      return NextResponse.json(
-        {
-          error:
-            "Complete and get KYC approved before submitting a campaign. Sign in to the fundraiser portal → KYC.",
-        },
-        { status: 400 }
-      );
     }
     if (!existingDev) {
       return NextResponse.json(
@@ -60,8 +51,17 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+    if (existingDev.kycStatus !== "APPROVED") {
+      return NextResponse.json(
+        {
+          error:
+            "Complete and get KYC approved before submitting a campaign. Sign in to the fundraiser portal → KYC.",
+        },
+        { status: 400 }
+      );
+    }
 
-    await prisma.projectSubmission.create({
+    const submission = await prisma.projectSubmission.create({
       data: {
         title,
         categoryId,
@@ -76,9 +76,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Notify admin (best-effort)
     try {
-      const { sendEmail } = await import("@/lib/notifications");
       const adminEmail =
         process.env.ADMIN_EMAIL ||
         (
