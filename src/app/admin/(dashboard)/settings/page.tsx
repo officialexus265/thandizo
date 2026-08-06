@@ -24,6 +24,9 @@ export default function SettingsPage() {
     withdrawalsEnabled: true,
     captchaRequired: false,
     maintenanceMode: false,
+    kycAutoEnabled: true,
+    kycAutoApproveEnabled: true,
+    kycAutoApproveMinScore: 80,
   });
 
   useEffect(() => {
@@ -48,6 +51,9 @@ export default function SettingsPage() {
             withdrawalsEnabled: data.withdrawalsEnabled ?? true,
             captchaRequired: data.captchaRequired ?? false,
             maintenanceMode: data.maintenanceMode ?? false,
+            kycAutoEnabled: data.kycAutoEnabled ?? true,
+            kycAutoApproveEnabled: data.kycAutoApproveEnabled ?? true,
+            kycAutoApproveMinScore: data.kycAutoApproveMinScore ?? 80,
           }));
         }
       })
@@ -133,6 +139,16 @@ export default function SettingsPage() {
       key: "captchaRequired",
       label: "Require CAPTCHA",
       hint: "Force Turnstile when keys are configured",
+    },
+    {
+      key: "kycAutoEnabled",
+      label: "Automated KYC checks",
+      hint: "Run document and identity checks on every KYC submission",
+    },
+    {
+      key: "kycAutoApproveEnabled",
+      label: "Auto-approve high-score KYC",
+      hint: "Approve automatically when score meets the minimum (else human review)",
     },
   ];
 
@@ -226,6 +242,19 @@ export default function SettingsPage() {
             value={form.adminWhatsapp || form.adminPhone}
             onChange={(e) =>
               setForm({ ...form, adminWhatsapp: e.target.value, adminPhone: e.target.value })
+            }
+            className="w-full rounded-lg border px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">KYC auto-approve minimum score (0–100)</label>
+          <input
+            type="number"
+            min={50}
+            max={100}
+            value={form.kycAutoApproveMinScore}
+            onChange={(e) =>
+              setForm({ ...form, kycAutoApproveMinScore: Number(e.target.value) })
             }
             className="w-full rounded-lg border px-3 py-2 text-sm"
           />

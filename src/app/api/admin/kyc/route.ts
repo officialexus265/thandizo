@@ -27,6 +27,10 @@ export async function GET() {
       kycNote: true,
       kycSubmittedAt: true,
       kycReviewedAt: true,
+      kycAutoScore: true,
+      kycAutoDecision: true,
+      kycAutoReport: true,
+      kycAutoAt: true,
       bannedAt: true,
       banReason: true,
       projects: {

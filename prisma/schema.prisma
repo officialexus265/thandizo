@@ -41,6 +41,9 @@ model SiteSettings {
   withdrawalsEnabled   Boolean @default(true)
   captchaRequired      Boolean @default(false)
   maintenanceMode      Boolean @default(false)
+  kycAutoEnabled         Boolean @default(true)
+  kycAutoApproveEnabled  Boolean @default(true)
+  kycAutoApproveMinScore Float   @default(80)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -318,6 +321,10 @@ model Developer {
   kycNote          String?
   kycSubmittedAt   DateTime?
   kycReviewedAt    DateTime?
+  kycAutoScore     Float?
+  kycAutoDecision  String?   // APPROVED | REJECTED | REVIEW
+  kycAutoReport    String?   @db.Text
+  kycAutoAt        DateTime?
   payoutPhone      String?
   bannedAt         DateTime?
   banReason        String?

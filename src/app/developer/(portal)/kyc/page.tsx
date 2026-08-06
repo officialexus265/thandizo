@@ -79,7 +79,7 @@ export default function DeveloperKycPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Submit failed");
       setStatus(data.kycStatus);
-      toast.success("KYC submitted for review");
+      toast.success(data.message || "KYC submitted for review");
     } catch (err: any) {
       toast.error(err.message);
     } finally {
@@ -147,7 +147,7 @@ export default function DeveloperKycPage() {
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || "Upload failed");
                 setForm((f) => ({ ...f, nationalIdUrl: data.url }));
-                toast.success("ID uploaded");
+                toast.success(data.message || "ID uploaded");
               } catch (err: any) {
                 toast.error(err.message);
               }

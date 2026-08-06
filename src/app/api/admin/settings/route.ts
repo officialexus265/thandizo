@@ -44,6 +44,9 @@ export async function PUT(req: NextRequest) {
     if (typeof body.withdrawalsEnabled === "boolean") data.withdrawalsEnabled = body.withdrawalsEnabled;
     if (typeof body.captchaRequired === "boolean") data.captchaRequired = body.captchaRequired;
     if (typeof body.maintenanceMode === "boolean") data.maintenanceMode = body.maintenanceMode;
+    if (typeof body.kycAutoEnabled === "boolean") data.kycAutoEnabled = body.kycAutoEnabled;
+    if (typeof body.kycAutoApproveEnabled === "boolean") data.kycAutoApproveEnabled = body.kycAutoApproveEnabled;
+    if (body.kycAutoApproveMinScore != null) data.kycAutoApproveMinScore = Number(body.kycAutoApproveMinScore);
 
     const settings = await prisma.siteSettings.upsert({
       where: { id: "default" },

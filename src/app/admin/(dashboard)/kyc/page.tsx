@@ -72,7 +72,7 @@ export default function AdminKycPage() {
                 className="w-full text-left px-4 py-3 hover:bg-stone-50 text-sm"
               >
                 <span className="font-medium">{d.fullLegalName || d.name}</span>
-                <span className="text-xs text-stone-400 ml-2">{d.kycStatus}</span>
+                <span className="text-xs text-stone-400 ml-2">{d.kycStatus}{d.kycAutoScore != null ? ` · auto ${d.kycAutoScore} (${d.kycAutoDecision || "—"})` : ""}</span>
                 <p className="text-xs text-stone-500">{d.email}</p>
               </button>
             </li>
@@ -109,6 +109,31 @@ export default function AdminKycPage() {
                   </a>
                 )}
               </div>
+              {selected.kycAutoScore != null && (
+                <div className="rounded-lg border bg-stone-50 p-3 text-sm space-y-1">
+                  <p className="font-medium">Automated verification</p>
+                  <p>
+                    Score: <strong>{selected.kycAutoScore}</strong> · Decision:{" "}
+                    <strong>{selected.kycAutoDecision || "—"}</strong>
+                  </p>
+                  {selected.kycAutoReport && (
+                    <ul className="text-xs text-stone-600 list-disc pl-4 space-y-0.5">
+                      {(() => {
+                        try {
+                          const r = JSON.parse(selected.kycAutoReport);
+                          return (r.checks || []).map((c: any) => (
+                            <li key={c.id}>
+                              {c.passed ? "✓" : "✗"} {c.label}: {c.detail}
+                            </li>
+                          ));
+                        } catch {
+                          return null;
+                        }
+                      })()}
+                    </ul>
+                  )}
+                </div>
+              )}
               {selected.projects?.length > 0 && (
                 <div>
                   <p className="text-xs text-stone-500 mb-1">Campaigns</p>
