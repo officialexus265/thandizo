@@ -4,6 +4,7 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
 import { verifyAccessCode } from "./developer";
+import { hitRateLimit } from "./rate-limit";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -15,15 +16,32 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
         token: { label: "2FA Token", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
+        // IP rate limit — stop credential stuffing on /admin/login
+        const ip =
+          (req as any)?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim() ||
+          (req as any)?.headers?.["x-real-ip"]?.toString() ||
+          "unknown";
+        const limited = hitRateLimit(`admin-login:${ip}`, 8, 15 * 60 * 1000);
+        if (!limited.ok) {
+          throw new Error("TOO_MANY_ATTEMPTS");
+        }
+        // Also limit per email
+        const emailKey = credentials.email.trim().toLowerCase();
+        const emailLimited = hitRateLimit(`admin-login-email:${emailKey}`, 10, 15 * 60 * 1000);
+        if (!emailLimited.ok) {
+          throw new Error("TOO_MANY_ATTEMPTS");
+        }
+
         const admin = await prisma.admin.findUnique({
-          where: { email: credentials.email },
+          where: { email: emailKey },
         });
 
+        // Constant-ish failure: always same outcome message upstream
         if (!admin) return null;
 
         const valid = await bcrypt.compare(credentials.password, admin.passwordHash);
@@ -55,16 +73,35 @@ export const authOptions: NextAuthOptions = {
       name: "Developer",
       credentials: {
         email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
         accessCode: { label: "Access code", type: "password" },
       },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.accessCode) return null;
+      async authorize(credentials, req) {
+        if (!credentials?.email) return null;
         const email = credentials.email.trim().toLowerCase();
+        const password = credentials.password?.trim() || "";
+        const accessCode = credentials.accessCode?.trim() || "";
+        if (!password && !accessCode) return null;
+
+        const ip =
+          (req as any)?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim() ||
+          "unknown";
+        const limited = hitRateLimit(`dev-login:${ip}`, 20, 15 * 60 * 1000);
+        if (!limited.ok) throw new Error("TOO_MANY_ATTEMPTS");
+
         const developer = await prisma.developer.findUnique({ where: { email } });
-        if (!developer) return null;
-        if (developer.bannedAt) return null;
-        const ok = await verifyAccessCode(credentials.accessCode, developer.accessCodeHash);
+        if (!developer || developer.bannedAt) return null;
+
+        let ok = false;
+        // Prefer password when both sent; accept either
+        if (password && developer.passwordHash) {
+          ok = await bcrypt.compare(password, developer.passwordHash);
+        }
+        if (!ok && accessCode) {
+          ok = await verifyAccessCode(accessCode, developer.accessCodeHash);
+        }
         if (!ok) return null;
+
         return {
           id: developer.id,
           email: developer.email,
@@ -76,23 +113,24 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60,
+    maxAge: 8 * 60 * 60, // 8 hours
   },
   pages: {
     signIn: "/admin/login",
+    error: "/admin/login",
   },
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        token.role = (user as any).role;
         token.id = user.id;
-        token.role = (user as any).role || "admin";
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
-        (session.user as any).id = token.id;
         (session.user as any).role = token.role;
+        (session.user as any).id = token.id;
       }
       return session;
     },

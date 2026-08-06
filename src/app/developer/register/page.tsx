@@ -53,7 +53,7 @@ function RegisterForm() {
             {accessCode}
           </p>
           <ol className="text-sm text-stone-600 list-decimal pl-5 space-y-1">
-            <li>Sign in with email + access code</li>
+            <li>Sign in with email + <strong>password</strong> (access code is backup)</li>
             <li>Verify email & phone (Security)</li>
             <li>Complete KYC (required before any campaign)</li>
             <li>After KYC approval, submit your project</li>

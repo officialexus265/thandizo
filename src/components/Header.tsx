@@ -16,6 +16,7 @@ const links = [
   { href: "/donations", label: "Donations" },
   { href: "/search", label: "Search" },
   { href: "/developer/register", label: "Submit project" },
+  { href: "/developer/login", label: "Sign in" },
   { href: "/legal", label: "Trust" },
 ];
 

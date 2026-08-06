@@ -35,6 +35,8 @@ export default function AdminLoginForm({ logoUrl, siteName = "thandizo" }: Props
         if (res.error === "2FA_REQUIRED" || res.error.includes("2FA")) {
           setNeeds2FA(true);
           toast.message("Enter your 2FA code");
+        } else if (res.error?.includes("TOO_MANY")) {
+          toast.error("Too many attempts. Try again in 15 minutes.");
         } else {
           toast.error("Invalid credentials");
         }
@@ -70,7 +72,10 @@ export default function AdminLoginForm({ logoUrl, siteName = "thandizo" }: Props
             </div>
           )}
           <h1 className="text-2xl font-bold text-stone-900">{siteName} Admin</h1>
-          <p className="text-sm text-stone-500 mt-1">Secure access only</p>
+          <p className="text-sm text-stone-500 mt-1">Staff only — not for fundraisers</p>
+          <p className="text-xs text-stone-400 mt-2">
+            Fundraisers: use Sign in on the main site.
+          </p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
