@@ -18,6 +18,13 @@ export default function DeveloperWithdrawalsPage() {
   const [submitting, setSubmitting] = useState(false);
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(0);
+
+  useEffect(() => {
+    if (otpCooldown <= 0) return;
+    const t = setTimeout(() => setOtpCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [otpCooldown]);
 
   useEffect(() => {
     fetch("/api/developer/my-projects")
@@ -61,8 +68,12 @@ export default function DeveloperWithdrawalsPage() {
         body: JSON.stringify({ action: "send-otp", phone }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Could not send OTP");
+      if (!res.ok) {
+        if (data.retryAfterSeconds) setOtpCooldown(data.retryAfterSeconds);
+        throw new Error(data.error || "Could not send OTP");
+      }
       setOtpSent(true);
+      setOtpCooldown(data.cooldownSeconds || 60);
       toast.success("Withdrawal OTP sent by SMS");
     } catch (err: any) {
       toast.error(err.message);
@@ -203,9 +214,10 @@ export default function DeveloperWithdrawalsPage() {
           <button
             type="button"
             onClick={sendOtp}
-            className="px-3 py-2 rounded-lg border text-sm font-medium hover:bg-stone-50"
+            disabled={otpCooldown > 0}
+            className="px-3 py-2 rounded-lg border text-sm font-medium hover:bg-stone-50 disabled:opacity-50"
           >
-            {otpSent ? "Resend OTP" : "Send OTP"}
+            {otpCooldown > 0 ? `Wait ${otpCooldown}s` : otpSent ? "Resend OTP" : "Send OTP"}
           </button>
         </div>
         <p className="text-xs text-stone-500">

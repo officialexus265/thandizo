@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { ensureDeveloperWithCode } from "@/lib/developer";
 import { sendEmail, sendSMS, normalizePhone } from "@/lib/notifications";
 import bcrypt from "bcryptjs";
+import { hitRateLimit } from "@/lib/rate-limit";
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,6 +15,24 @@ export async function POST(req: NextRequest) {
     const securityQuestion = String(body.securityQuestion || "").trim();
     const securityAnswer = String(body.securityAnswer || "").trim();
 
+    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const byIp = hitRateLimit(`register:ip:${ip}`, 8, 60 * 60 * 1000);
+    if (!byIp.ok) {
+      return NextResponse.json(
+        { error: "Too many sign-up attempts. Try again later.", retryAfterSeconds: byIp.retryAfterSeconds },
+        { status: 429 }
+      );
+    }
+    if (email) {
+      const byEmail = hitRateLimit(`register:email:${email}`, 3, 60 * 60 * 1000);
+      if (!byEmail.ok) {
+        return NextResponse.json(
+          { error: "Too many attempts for this email. Try again later.", retryAfterSeconds: byEmail.retryAfterSeconds },
+          { status: 429 }
+        );
+      }
+    }
+
     if (!name || !email || !phone || !password || !securityQuestion || !securityAnswer) {
       return NextResponse.json(
         { error: "Name, email, phone, password, and security question/answer required" },
@@ -22,6 +41,12 @@ export async function POST(req: NextRequest) {
     }
     if (password.length < 8) {
       return NextResponse.json({ error: "Password min 8 characters" }, { status: 400 });
+    }
+    if (securityQuestion.length < 5 || securityAnswer.length < 2) {
+      return NextResponse.json(
+        { error: "Use a clearer security question and answer" },
+        { status: 400 }
+      );
     }
 
     const existing = await prisma.developer.findUnique({ where: { email } });
@@ -32,12 +57,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Banned accounts may re-register: create new row only if email free, else update banned shell
-    let developerId: string;
-    let accessCode: string;
-
     if (existing?.bannedAt) {
-      // Allow new account with same email by renaming old email
       await prisma.developer.update({
         where: { id: existing.id },
         data: { email: `banned+${existing.id}@thandizo.invalid` },
@@ -49,11 +69,9 @@ export async function POST(req: NextRequest) {
       email,
       phone: normalizePhone(phone),
     });
-    developerId = created.developerId;
-    accessCode = created.accessCode;
 
     await prisma.developer.update({
-      where: { id: developerId },
+      where: { id: created.developerId },
       data: {
         phone: normalizePhone(phone),
         passwordHash: await bcrypt.hash(password, 10),
@@ -67,22 +85,23 @@ export async function POST(req: NextRequest) {
       "Welcome to Thandizo — fundraiser account",
       `Hello ${name},\n\n` +
         `Your fundraiser account was created.\n\n` +
-        `Sign in at /developer/login with your email and access code:\n${accessCode}\n\n` +
+        `Sign in at /developer/login with your email and access code:\n${created.accessCode}\n\n` +
         `Next steps:\n` +
         `1. Verify email and phone (Security)\n` +
         `2. Complete KYC (required before any campaign)\n` +
-        `3. Submit or manage projects after KYC approval\n\n` +
+        `3. After KYC approval, submit your project\n` +
+        `4. When funded, withdraw with SMS OTP\n\n` +
         `Inu ndi thandizo lathu`
     );
     await sendSMS(
       phone,
-      `Thandizo: account created. Access code ${accessCode}. Verify email/phone then complete KYC.`
+      `Thandizo: account created. Access code ${created.accessCode}. Verify email/phone then complete KYC.`
     );
 
     return NextResponse.json({
       success: true,
-      accessCode,
-      message: "Account created. Check email/SMS for access code. Complete verification + KYC next.",
+      accessCode: created.accessCode,
+      message: "Account created. Check email/SMS for access code.",
     });
   } catch (err: any) {
     console.error(err);

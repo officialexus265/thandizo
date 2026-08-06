@@ -4,7 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { projectMoneySummary } from "@/lib/developer";
 import { requestWithdrawal } from "@/lib/withdrawals";
-import { issueVerificationCode, consumeVerificationCode } from "@/lib/otp";
+import { issueVerificationCode, consumeVerificationCode, RateLimitError } from "@/lib/otp";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -71,14 +71,14 @@ export async function POST(req: NextRequest) {
     if (action === "send-otp") {
       const phone = String(body.phone || developer.payoutPhone || developer.phone || "");
       if (!phone) return NextResponse.json({ error: "Phone required" }, { status: 400 });
-      await issueVerificationCode({
+      const issued = await issueVerificationCode({
         developerId,
         channel: "SMS",
         purpose: "WITHDRAW",
         target: phone,
         messagePrefix: "Your Thandizo withdrawal confirmation code is",
       });
-      return NextResponse.json({ success: true, sent: true });
+      return NextResponse.json({ success: true, sent: true, cooldownSeconds: issued.cooldownSeconds });
     }
 
     if (action === "withdraw") {
@@ -116,6 +116,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err: any) {
+    if (err instanceof RateLimitError || err?.name === "RateLimitError") {
+      return NextResponse.json(
+        { error: err.message, retryAfterSeconds: err.retryAfterSeconds },
+        { status: 429 }
+      );
+    }
     return NextResponse.json({ error: err.message || "Withdrawal failed" }, { status: 400 });
   }
 }

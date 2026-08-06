@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { issueVerificationCode, consumeVerificationCode } from "@/lib/otp";
+import { issueVerificationCode, consumeVerificationCode, RateLimitError } from "@/lib/otp";
 import { normalizePhone } from "@/lib/notifications";
 
 export async function GET() {
@@ -39,14 +39,14 @@ export async function POST(req: NextRequest) {
 
   try {
     if (action === "send-email") {
-      await issueVerificationCode({
+      const issued = await issueVerificationCode({
         developerId,
         channel: "EMAIL",
         purpose: "SIGNUP_EMAIL",
         target: d.email,
         messagePrefix: "Your Thandizo email verification code is",
       });
-      return NextResponse.json({ success: true, sent: "email" });
+      return NextResponse.json({ success: true, sent: "email", cooldownSeconds: issued.cooldownSeconds });
     }
 
     if (action === "confirm-email") {
@@ -72,14 +72,14 @@ export async function POST(req: NextRequest) {
         where: { id: developerId },
         data: { phone: normalizePhone(phone) },
       });
-      await issueVerificationCode({
+      const issued = await issueVerificationCode({
         developerId,
         channel: "SMS",
         purpose: "SIGNUP_PHONE",
         target: phone,
         messagePrefix: "Your Thandizo phone verification code is",
       });
-      return NextResponse.json({ success: true, sent: "sms" });
+      return NextResponse.json({ success: true, sent: "sms", cooldownSeconds: issued.cooldownSeconds });
     }
 
     if (action === "confirm-phone") {
@@ -104,6 +104,12 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   } catch (err: any) {
+    if (err instanceof RateLimitError || err?.name === "RateLimitError") {
+      return NextResponse.json(
+        { error: err.message, retryAfterSeconds: err.retryAfterSeconds },
+        { status: 429 }
+      );
+    }
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }

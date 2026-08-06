@@ -12,6 +12,22 @@ export default function DeveloperSecurityPage() {
   const [emailCode, setEmailCode] = useState("");
   const [phone, setPhone] = useState("");
   const [phoneCode, setPhoneCode] = useState("");
+  const [confirmPw, setConfirmPw] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [emailCooldown, setEmailCooldown] = useState(0);
+  const [phoneCooldown, setPhoneCooldown] = useState(0);
+
+  useEffect(() => {
+    if (emailCooldown <= 0) return;
+    const t = setTimeout(() => setEmailCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [emailCooldown]);
+
+  useEffect(() => {
+    if (phoneCooldown <= 0) return;
+    const t = setTimeout(() => setPhoneCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phoneCooldown]);
 
   function load() {
     fetch("/api/developer/verify")
@@ -27,15 +43,20 @@ export default function DeveloperSecurityPage() {
     load();
   }, []);
 
-  async function sendEmail() {
+  async function sendEmailCode() {
     const res = await fetch("/api/developer/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "send-email" }),
     });
     const data = await res.json();
-    if (!res.ok) toast.error(data.error || "Failed");
-    else toast.success("Code sent to your email");
+    if (!res.ok) {
+      toast.error(data.error || "Failed");
+      if (data.retryAfterSeconds) setEmailCooldown(data.retryAfterSeconds);
+      return;
+    }
+    toast.success("Code sent to your email");
+    setEmailCooldown(data.cooldownSeconds || 60);
   }
 
   async function confirmEmail() {
@@ -48,19 +69,25 @@ export default function DeveloperSecurityPage() {
     if (!res.ok) toast.error(data.error || "Failed");
     else {
       toast.success("Email verified");
+      setEmailCode("");
       load();
     }
   }
 
-  async function sendPhone() {
+  async function sendPhoneCode() {
     const res = await fetch("/api/developer/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "send-phone", phone }),
     });
     const data = await res.json();
-    if (!res.ok) toast.error(data.error || "Failed");
-    else toast.success("Code sent by SMS");
+    if (!res.ok) {
+      toast.error(data.error || "Failed");
+      if (data.retryAfterSeconds) setPhoneCooldown(data.retryAfterSeconds);
+      return;
+    }
+    toast.success("SMS code sent");
+    setPhoneCooldown(data.cooldownSeconds || 60);
   }
 
   async function confirmPhone() {
@@ -73,6 +100,7 @@ export default function DeveloperSecurityPage() {
     if (!res.ok) toast.error(data.error || "Failed");
     else {
       toast.success("Phone verified");
+      setPhoneCode("");
       load();
     }
   }
@@ -91,15 +119,12 @@ export default function DeveloperSecurityPage() {
     const data = await res.json();
     if (!res.ok) toast.error(data.error || "Failed");
     else {
-      toast.success("Saved — security alert emailed/SMS if contacts verified");
+      toast.success("Saved — security alert sent if contacts are set");
       setPassword("");
       setAnswer("");
       load();
     }
   }
-
-  const [confirmPw, setConfirmPw] = useState("");
-  const [newCode, setNewCode] = useState("");
 
   async function regenerateCode() {
     const res = await fetch("/api/developer/security", {
@@ -115,7 +140,7 @@ export default function DeveloperSecurityPage() {
     if (!res.ok) toast.error(data.error || "Failed");
     else {
       setNewCode(data.accessCode || "");
-      toast.success("New access code created — check email/SMS");
+      toast.success("New access code created");
       setConfirmPw("");
     }
   }
@@ -123,35 +148,45 @@ export default function DeveloperSecurityPage() {
   if (loading) return <p className="text-sm text-stone-500">Loading…</p>;
 
   return (
-    <div className="max-w-xl space-y-8">
+    <div className="max-w-xl space-y-6">
       <div>
         <h1 className="text-2xl font-bold">Account security</h1>
         <p className="text-sm text-stone-500 mt-1">
-          Verify email & phone, set a password and security question for recovery. Required before
-          withdrawals.
+          Verify contacts, set recovery question, and manage your access code. Codes are limited:
+          wait 60 seconds between sends, max 5 per hour.
         </p>
       </div>
 
       <section className="bg-white border rounded-xl p-5 space-y-3">
-        <h2 className="font-semibold">Email verification</h2>
-        <p className="text-sm text-stone-600">
-          {info?.email} —{" "}
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Email</h2>
           {info?.emailVerified ? (
-            <span className="text-green-700 font-medium">Verified</span>
+            <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+              Verified
+            </span>
           ) : (
-            <span className="text-amber-700 font-medium">Not verified</span>
+            <span className="text-xs font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+              Not verified
+            </span>
           )}
-        </p>
+        </div>
+        <p className="text-sm text-stone-600">{info?.email}</p>
         {!info?.emailVerified && (
           <>
-            <button type="button" onClick={sendEmail} className="text-sm underline">
-              Send code to email
+            <button
+              type="button"
+              onClick={sendEmailCode}
+              disabled={emailCooldown > 0}
+              className="text-sm underline disabled:no-underline disabled:text-stone-400"
+            >
+              {emailCooldown > 0 ? `Resend in ${emailCooldown}s` : "Send email code"}
             </button>
             <div className="flex gap-2">
               <input
                 value={emailCode}
-                onChange={(e) => setEmailCode(e.target.value)}
+                onChange={(e) => setEmailCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="6-digit code"
+                inputMode="numeric"
                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
               />
               <button
@@ -167,23 +202,40 @@ export default function DeveloperSecurityPage() {
       </section>
 
       <section className="bg-white border rounded-xl p-5 space-y-3">
-        <h2 className="font-semibold">Phone verification</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="font-semibold">Phone</h2>
+          {info?.phoneVerified ? (
+            <span className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded-full">
+              Verified
+            </span>
+          ) : (
+            <span className="text-xs font-medium text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full">
+              Not verified
+            </span>
+          )}
+        </div>
         {!info?.phoneVerified ? (
           <>
             <input
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              placeholder="+265..."
+              placeholder="+265…"
               className="w-full border rounded-lg px-3 py-2 text-sm"
             />
-            <button type="button" onClick={sendPhone} className="text-sm underline">
-              Send SMS code
+            <button
+              type="button"
+              onClick={sendPhoneCode}
+              disabled={phoneCooldown > 0}
+              className="text-sm underline disabled:no-underline disabled:text-stone-400"
+            >
+              {phoneCooldown > 0 ? `Resend in ${phoneCooldown}s` : "Send SMS code"}
             </button>
             <div className="flex gap-2">
               <input
                 value={phoneCode}
-                onChange={(e) => setPhoneCode(e.target.value)}
+                onChange={(e) => setPhoneCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
                 placeholder="6-digit code"
+                inputMode="numeric"
                 className="flex-1 border rounded-lg px-3 py-2 text-sm"
               />
               <button
@@ -196,14 +248,14 @@ export default function DeveloperSecurityPage() {
             </div>
           </>
         ) : (
-          <p className="text-sm text-green-700 font-medium">Phone verified: {info.phone}</p>
+          <p className="text-sm text-stone-600">{info.phone}</p>
         )}
       </section>
 
       <form onSubmit={saveSecurity} className="bg-white border rounded-xl p-5 space-y-3">
-        <h2 className="font-semibold">Password & security question</h2>
+        <h2 className="font-semibold">Password & recovery question</h2>
         <p className="text-xs text-stone-500">
-          Security question is used for account recovery / password reset.
+          Used to reset password and regenerate the portal access code.
         </p>
         <input
           type="password"
@@ -211,6 +263,7 @@ export default function DeveloperSecurityPage() {
           onChange={(e) => setPassword(e.target.value)}
           placeholder={info?.hasPassword ? "New password (optional)" : "Set password (min 8)"}
           className="w-full border rounded-lg px-3 py-2 text-sm"
+          minLength={8}
         />
         <input
           value={question}
@@ -232,14 +285,13 @@ export default function DeveloperSecurityPage() {
       <section className="bg-white border rounded-xl p-5 space-y-3">
         <h2 className="font-semibold">Regenerate access code</h2>
         <p className="text-xs text-stone-500">
-          Creates a new portal login code and sends a security alert to your email and phone.
-          Confirm with password or security answer.
+          Confirm with password or the security answer above. A security alert is sent.
         </p>
         <input
           type="password"
           value={confirmPw}
           onChange={(e) => setConfirmPw(e.target.value)}
-          placeholder="Current password (or fill security answer above)"
+          placeholder="Current password"
           className="w-full border rounded-lg px-3 py-2 text-sm"
         />
         <button
