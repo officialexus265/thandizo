@@ -8,6 +8,7 @@ import { issueVerificationCode, consumeVerificationCode, RateLimitError } from "
 import { verifyCaptcha, getClientIp } from "@/lib/captcha";
 import { limitByIp } from "@/lib/rate-limit";
 import { getWithdrawalFeeSettings } from "@/lib/withdrawals";
+import { getFeatureFlags } from "@/lib/features";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -57,6 +58,11 @@ export async function POST(req: NextRequest) {
   const developerId = (session.user as any).id as string;
 
   try {
+    const flags = await getFeatureFlags();
+    if (!flags.withdrawalsEnabled) {
+      return NextResponse.json({ error: "Withdrawals are temporarily disabled" }, { status: 403 });
+    }
+
     const body = await req.json();
     const action = String(body.action || "withdraw");
 

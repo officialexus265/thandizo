@@ -4,10 +4,18 @@ import { ensureDeveloperWithCode } from "@/lib/developer";
 import { sendEmail, sendSMS, normalizePhone } from "@/lib/notifications";
 import bcrypt from "bcryptjs";
 import { hitRateLimit, limitByIp } from "@/lib/rate-limit";
+import { getFeatureFlags } from "@/lib/features";
 import { verifyCaptcha, getClientIp } from "@/lib/captcha";
 
 export async function POST(req: NextRequest) {
   try {
+    const flags = await getFeatureFlags();
+    if (flags.maintenanceMode) {
+      return NextResponse.json({ error: "Site under maintenance" }, { status: 503 });
+    }
+    if (!flags.registrationsEnabled) {
+      return NextResponse.json({ error: "New registrations are closed" }, { status: 403 });
+    }
     const body = await req.json();
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim().toLowerCase();

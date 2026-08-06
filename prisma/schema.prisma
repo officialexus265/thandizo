@@ -35,6 +35,12 @@ model SiteSettings {
   withdrawalFeePercent Float @default(0)
   minWithdrawalAmount  Float @default(1000)
   donorDisclaimer String? @db.Text
+  // Feature toggles
+  registrationsEnabled Boolean @default(true)
+  submissionsEnabled   Boolean @default(true)
+  withdrawalsEnabled   Boolean @default(true)
+  captchaRequired      Boolean @default(false)
+  maintenanceMode      Boolean @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
@@ -87,20 +93,27 @@ enum ProjectStatus {
 }
 
 model Media {
-  id        String    @id @default(cuid())
-  projectId String
-  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  url       String
-  publicId  String?
-  type      MediaType @default(IMAGE)
-  caption   String?
-  sortOrder Int       @default(0)
-  createdAt DateTime  @default(now())
+  id         String         @id @default(cuid())
+  projectId  String
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  url        String
+  publicId   String?
+  type       MediaType      @default(IMAGE)
+  visibility MediaVisibility @default(PUBLIC)
+  caption    String?
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
 }
 
 enum MediaType {
   IMAGE
   VIDEO
+  DOCUMENT
+}
+
+enum MediaVisibility {
+  PUBLIC
+  REVIEW_ONLY
 }
 
 model Donation {

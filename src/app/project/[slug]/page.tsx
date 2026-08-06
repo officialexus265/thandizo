@@ -23,7 +23,7 @@ const getProject = cache(async (slug: string) => {
     where: { slug },
     include: {
       updates: { where: { isPublic: true }, orderBy: { createdAt: "desc" }, take: 20 },
-      media: { orderBy: { sortOrder: "asc" } },
+      media: { where: { visibility: "PUBLIC" }, orderBy: { sortOrder: "asc" } },
       donations: {
         where: { status: "SUCCESS" },
         orderBy: { createdAt: "desc" },

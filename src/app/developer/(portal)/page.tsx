@@ -69,7 +69,7 @@ export default async function DeveloperDashboard() {
     {
       done: projects.length > 0,
       label: "Submit a campaign",
-      href: "/submit",
+      href: "/developer/submit",
     },
   ];
   const nextStep = steps.find((s) => !s.done);
@@ -132,7 +132,7 @@ export default async function DeveloperDashboard() {
       </section>
 
       <div className="flex flex-wrap gap-2 text-sm">
-        <Link href="/submit" className="px-3 py-1.5 rounded-lg bg-red-800 text-white font-medium">
+        <Link href="/developer/submit" className="px-3 py-1.5 rounded-lg bg-red-800 text-white font-medium">
           Submit project
         </Link>
         <Link href="/developer/withdrawals" className="px-3 py-1.5 rounded-lg border font-medium">
@@ -151,7 +151,7 @@ export default async function DeveloperDashboard() {
         {summaries.length === 0 ? (
           <p className="text-stone-500 text-sm">
             No projects yet. Complete KYC, then{" "}
-            <Link href="/submit" className="underline">
+            <Link href="/developer/submit" className="underline">
               submit a campaign
             </Link>
             .

@@ -16,7 +16,7 @@ export default async function GalleryPage({ params }: Props) {
   const project = await prisma.project.findUnique({
     where: { slug },
     include: {
-      media: { orderBy: { sortOrder: "asc" } },
+      media: { where: { visibility: "PUBLIC" }, orderBy: { sortOrder: "asc" } },
     },
   });
 
