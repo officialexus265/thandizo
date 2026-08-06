@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-export default function DeveloperRegisterPage() {
-  const router = useRouter();
+function RegisterForm() {
   const searchParams = useSearchParams();
   const nextPath = searchParams.get("next") || "/developer";
   const [loading, setLoading] = useState(false);
@@ -114,5 +113,19 @@ export default function DeveloperRegisterPage() {
         </p>
       </form>
     </div>
+  );
+}
+
+export default function DeveloperRegisterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center text-sm text-stone-500">
+          Loading…
+        </div>
+      }
+    >
+      <RegisterForm />
+    </Suspense>
   );
 }
