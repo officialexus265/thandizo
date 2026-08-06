@@ -91,6 +91,7 @@ export default function DeveloperKycPage() {
 
   return (
     <div className="max-w-xl">
+      <p className="text-sm text-stone-500 mb-4">Verification is done by our admin team only (manual review). Nothing is auto-approved.</p>
       <h1 className="text-2xl font-bold">Identity verification (KYC)</h1>
       <p className="text-sm text-stone-500 mt-1 mb-4">
         Required before any campaign can be published or funds withdrawn. Complete email & phone verification under Security first. Status: <strong>{status}</strong>

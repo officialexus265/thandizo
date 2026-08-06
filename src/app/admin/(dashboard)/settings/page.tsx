@@ -24,8 +24,8 @@ export default function SettingsPage() {
     withdrawalsEnabled: true,
     captchaRequired: false,
     maintenanceMode: false,
-    kycAutoEnabled: true,
-    kycAutoApproveEnabled: true,
+    kycAutoEnabled: false,
+    kycAutoApproveEnabled: false,
     kycAutoApproveMinScore: 80,
   });
 
@@ -51,8 +51,8 @@ export default function SettingsPage() {
             withdrawalsEnabled: data.withdrawalsEnabled ?? true,
             captchaRequired: data.captchaRequired ?? false,
             maintenanceMode: data.maintenanceMode ?? false,
-            kycAutoEnabled: data.kycAutoEnabled ?? true,
-            kycAutoApproveEnabled: data.kycAutoApproveEnabled ?? true,
+            kycAutoEnabled: data.kycAutoEnabled ?? false,
+            kycAutoApproveEnabled: data.kycAutoApproveEnabled ?? false,
             kycAutoApproveMinScore: data.kycAutoApproveMinScore ?? 80,
           }));
         }
@@ -142,13 +142,13 @@ export default function SettingsPage() {
     },
     {
       key: "kycAutoEnabled",
-      label: "Automated KYC checks",
-      hint: "Run document and identity checks on every KYC submission",
+      label: "Automated KYC checks (disabled in product policy)",
+      hint: "KYC is admin/human review only. Leave this off.",
     },
     {
       key: "kycAutoApproveEnabled",
-      label: "Auto-approve high-score KYC",
-      hint: "Approve automatically when score meets the minimum (else human review)",
+      label: "Auto-approve KYC (must stay off)",
+      hint: "Thandizo uses manual admin verification only. Do not enable.",
     },
   ];
 

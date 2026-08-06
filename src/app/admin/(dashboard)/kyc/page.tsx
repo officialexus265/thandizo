@@ -48,6 +48,9 @@ export default function AdminKycPage() {
   return (
     <div>
       <h1 className="text-2xl font-bold">Fundraiser KYC</h1>
+      <p className="text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mt-2 mb-2">
+        Manual verification only — every approval or rejection is done by an admin.
+      </p>
       <p className="text-sm text-stone-500 mt-1 mb-6">
         Every fundraiser must submit national ID, selfie holding ID, and a video reading the
         verification script (English or Chichewa). Approve only if documents match. Medical and

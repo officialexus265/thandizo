@@ -3,8 +3,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { sendEmail, sendSMS } from "@/lib/notifications";
-import { runAutomatedKyc } from "@/lib/kyc-auto";
 
+/**
+ * KYC is HUMAN / ADMIN REVIEW ONLY.
+ * No auto-approve. No Smile ID in the live path.
+ * Fundraiser submits documents → status PENDING → admin approves or rejects.
+ */
 export async function GET() {
   const session = await getServerSession(authOptions);
   if (!session || (session.user as any)?.role !== "developer") {
@@ -48,52 +52,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "All KYC fields required" }, { status: 400 });
     }
 
-    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
-    const autoEnabled = (settings as any)?.kycAutoEnabled !== false;
-    const autoApproveEnabled = (settings as any)?.kycAutoApproveEnabled !== false;
-    const minScore = Number((settings as any)?.kycAutoApproveMinScore ?? 80);
-
-    let kycStatus: "PENDING" | "APPROVED" | "REJECTED" = "PENDING";
-    let kycNote: string | null = null;
-    let autoScore: number | null = null;
-    let autoDecision: string | null = null;
-    let autoReport: string | null = null;
-    let reviewedAt: Date | null = null;
-
-    if (autoEnabled) {
-      const result = await runAutomatedKyc(
-        {
-          accountName: d.name,
-          fullLegalName,
-          nationalIdNumber,
-          nationalIdUrl,
-          selfieWithIdUrl,
-          videoKycUrl,
-          videoLanguage,
-          email: d.email,
-          phone: d.phone,
-        },
-        { autoApproveEnabled, autoApproveMinScore: minScore }
-      );
-
-      autoScore = result.score;
-      autoDecision = result.decision;
-      autoReport = JSON.stringify({ summary: result.summary, checks: result.checks });
-
-      if (result.decision === "APPROVED") {
-        kycStatus = "APPROVED";
-        kycNote = result.summary;
-        reviewedAt = new Date();
-      } else if (result.decision === "REJECTED") {
-        kycStatus = "REJECTED";
-        kycNote = result.summary;
-        reviewedAt = new Date();
-      } else {
-        kycStatus = "PENDING";
-        kycNote = result.summary;
-      }
-    }
-
     const updated = await prisma.developer.update({
       where: { id },
       data: {
@@ -103,88 +61,62 @@ export async function POST(req: NextRequest) {
         selfieWithIdUrl,
         videoKycUrl,
         videoLanguage,
-        kycStatus,
+        kycStatus: "PENDING",
         kycSubmittedAt: new Date(),
-        kycNote,
-        kycReviewedAt: reviewedAt,
-        kycAutoScore: autoScore,
-        kycAutoDecision: autoDecision,
-        kycAutoReport: autoReport,
-        kycAutoAt: autoEnabled ? new Date() : null,
+        kycNote: "Awaiting admin (human) review only",
+        kycReviewedAt: null,
+        // Clear any previous auto/Smile decisions
+        kycAutoScore: null,
+        kycAutoDecision: null,
+        kycAutoReport: null,
+        kycAutoAt: null,
+        smileJobComplete: false,
+        smileResultCode: null,
+        smileResultText: null,
       } as any,
     });
 
+    const settings = await prisma.siteSettings.findUnique({ where: { id: "default" } });
     const supportEmail = settings?.contactEmail || "officialnexus265@gmail.com";
     const whatsapp = settings?.adminWhatsapp || settings?.adminPhone || "";
 
-    if (kycStatus === "APPROVED") {
-      await sendEmail(
-        d.email,
-        "KYC approved on Thandizo",
-        `Hello ${d.name},\n\n` +
-          `Your identity verification was approved automatically after our checks.\n\n` +
-          `You can now submit campaigns in the portal.\n\nInu ndi thandizo lathu`
+    const userEmailBody =
+      `Hello ${d.name},\n\n` +
+      `We received your KYC documents.\n\n` +
+      `Verification is done by our admin team only (manual review).\n` +
+      `This usually takes up to 3 working days.\n\n` +
+      `If your campaign is urgent, contact us by email (${supportEmail})` +
+      (whatsapp ? ` or WhatsApp (${whatsapp})` : "") +
+      `.\n\n` +
+      `Inu ndi thandizo lathu`;
+
+    await sendEmail(d.email, "KYC under admin review — Thandizo", userEmailBody);
+    if (d.phone) {
+      await sendSMS(
+        d.phone,
+        `Thandizo: KYC received. Admin is reviewing (up to 3 working days). Urgent? Email ${supportEmail}`
       );
-      if (d.phone) {
-        await sendSMS(
-          d.phone,
-          "Thandizo: KYC approved. You can submit projects in the portal."
-        );
-      }
-    } else if (kycStatus === "REJECTED") {
+    }
+
+    // Notify admin
+    try {
       await sendEmail(
-        d.email,
-        "KYC needs attention on Thandizo",
-        `Hello ${d.name},\n\n` +
-          `Automated verification could not approve your KYC.\n\n` +
-          `${kycNote || ""}\n\n` +
-          `Please resubmit clearer ID photo, selfie holding ID, and verification video.\n\n` +
-          `Inu ndi thandizo lathu`
+        supportEmail,
+        `New KYC to review: ${fullLegalName || d.name}`,
+        `A fundraiser submitted KYC for manual review.\n\n` +
+          `Name: ${fullLegalName}\nAccount: ${d.name}\nEmail: ${d.email}\nPhone: ${d.phone || "—"}\n` +
+          `ID number: ${nationalIdNumber}\n\n` +
+          `Open Admin → KYC to approve or reject.`
       );
-      if (d.phone) {
-        await sendSMS(
-          d.phone,
-          "Thandizo: KYC not approved automatically. Please resubmit clearer documents in the portal."
-        );
-      }
-    } else {
-      const emailBody =
-        `Hello ${d.name},\n\n` +
-        `We received your KYC documents. Automated checks scored them for review.\n\n` +
-        `A team member will complete verification (usually up to 3 working days).\n\n` +
-        `If urgent, email ${supportEmail}` +
-        (whatsapp ? ` or WhatsApp ${whatsapp}` : "") +
-        `.\n\nInu ndi thandizo lathu`;
-      await sendEmail(d.email, "KYC under review — Thandizo", emailBody);
-      if (d.phone) {
-        await sendSMS(
-          d.phone,
-          `Thandizo: KYC received, under human review (up to 3 working days).`
-        );
-      }
-      // Notify admin
-      try {
-        await sendEmail(
-          supportEmail,
-          `KYC needs human review: ${d.name}`,
-          `Developer ${d.name} (${d.email}) scored ${autoScore} — decision REVIEW.\n\n${kycNote}`
-        );
-      } catch {
-        /* ignore */
-      }
+    } catch (e) {
+      console.error("Admin KYC notify failed", e);
     }
 
     return NextResponse.json({
       success: true,
       kycStatus: updated.kycStatus,
-      autoDecision,
-      autoScore,
       message:
-        kycStatus === "APPROVED"
-          ? "KYC approved automatically"
-          : kycStatus === "REJECTED"
-            ? "KYC rejected by automated checks — please resubmit"
-            : "KYC submitted — under human review",
+        "KYC submitted. An admin will review your documents manually (usually up to 3 working days).",
     });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });

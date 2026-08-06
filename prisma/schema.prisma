@@ -41,8 +41,8 @@ model SiteSettings {
   withdrawalsEnabled   Boolean @default(true)
   captchaRequired      Boolean @default(false)
   maintenanceMode      Boolean @default(false)
-  kycAutoEnabled         Boolean @default(true)
-  kycAutoApproveEnabled  Boolean @default(true)
+  kycAutoEnabled         Boolean @default(false)
+  kycAutoApproveEnabled  Boolean @default(false)
   kycAutoApproveMinScore Float   @default(80)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -325,6 +325,12 @@ model Developer {
   kycAutoDecision  String?   // APPROVED | REJECTED | REVIEW
   kycAutoReport    String?   @db.Text
   kycAutoAt        DateTime?
+  smileJobId       String?
+  smileUserId      String?
+  smileJobComplete Boolean @default(false)
+  smileResultCode  String?
+  smileResultText  String?
+  smileRawResult   String? @db.Text
   payoutPhone      String?
   bannedAt         DateTime?
   banReason        String?
