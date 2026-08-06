@@ -13,6 +13,8 @@ export default function SettingsPage() {
     contactEmail: "",
     logoUrl: "",
     refundFeePercent: 10,
+    withdrawalFeePercent: 0,
+    minWithdrawalAmount: 1000,
     adminPhone: "",
     callWindow: "",
   });
@@ -27,6 +29,8 @@ export default function SettingsPage() {
             contactEmail: data.contactEmail || "",
             logoUrl: data.logoUrl || "",
             refundFeePercent: data.refundFeePercent ?? 10,
+            withdrawalFeePercent: data.withdrawalFeePercent ?? 0,
+            minWithdrawalAmount: data.minWithdrawalAmount ?? 1000,
             adminPhone: data.adminPhone || "",
             callWindow: data.callWindow || "",
           });
@@ -146,6 +150,33 @@ export default function SettingsPage() {
           disabled={saving}
           className="px-5 py-2.5 rounded-lg bg-red-700 text-white font-medium hover:bg-red-800 disabled:opacity-60"
         >
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Withdrawal fee %</label>
+          <input
+            type="number"
+            min={0}
+            max={50}
+            step={0.1}
+            value={form.withdrawalFeePercent}
+            onChange={(e) => setForm({ ...form, withdrawalFeePercent: Number(e.target.value) })}
+            className="w-full rounded-lg border px-3 py-2 text-sm"
+          />
+          <p className="text-xs text-stone-500 mt-1">
+            Taken when fundraiser withdraws (donation fee is separate, at pay time).
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Minimum withdrawal (MWK)</label>
+          <input
+            type="number"
+            min={0}
+            value={form.minWithdrawalAmount}
+            onChange={(e) => setForm({ ...form, minWithdrawalAmount: Number(e.target.value) })}
+            className="w-full rounded-lg border px-3 py-2 text-sm"
+          />
+        </div>
+
           {saving ? "Saving..." : "Save settings"}
         </button>
       </form>

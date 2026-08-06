@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import Turnstile from "@/components/Turnstile";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 
@@ -19,6 +20,8 @@ export default function DeveloperWithdrawalsPage() {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpCooldown, setOtpCooldown] = useState(0);
+  const [feeSettings, setFeeSettings] = useState({ withdrawalFeePercent: 0, minWithdrawalAmount: 1000 });
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (otpCooldown <= 0) return;
@@ -65,7 +68,7 @@ export default function DeveloperWithdrawalsPage() {
       const res = await fetch("/api/developer/withdrawals", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "send-otp", phone }),
+        body: JSON.stringify({ action: "send-otp", phone, captchaToken }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -106,6 +109,7 @@ export default function DeveloperWithdrawalsPage() {
           amount: n,
           phone,
           otp,
+          captchaToken,
         }),
       });
       const data = await res.json();
@@ -201,6 +205,28 @@ export default function DeveloperWithdrawalsPage() {
             className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
           />
         </div>
+        {Number(amount) > 0 && (
+          <div className="rounded-lg bg-stone-50 border px-3 py-2 text-xs text-stone-600 space-y-1">
+            <p>From balance: {Number(amount).toLocaleString()} MWK</p>
+            <p>
+              Withdrawal fee ({feeSettings.withdrawalFeePercent}%):{" "}
+              {((Number(amount) * feeSettings.withdrawalFeePercent) / 100).toLocaleString()} MWK
+            </p>
+            <p className="font-semibold text-stone-900">
+              You receive:{" "}
+              {(
+                Number(amount) -
+                (Number(amount) * feeSettings.withdrawalFeePercent) / 100
+              ).toLocaleString()}{" "}
+              MWK
+            </p>
+            <p className="text-stone-400">
+              Min withdrawal: {feeSettings.minWithdrawalAmount.toLocaleString()} MWK. Donation
+              fees were already taken when donors paid.
+            </p>
+          </div>
+        )}
+        <Turnstile onToken={setCaptchaToken} />
         <div className="flex gap-2 items-end">
           <div className="flex-1">
             <label className="text-sm font-medium">Withdrawal OTP (SMS)</label>

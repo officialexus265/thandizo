@@ -4,13 +4,18 @@ import bcrypt from "bcryptjs";
 import { generateAccessCode, hashAccessCode } from "@/lib/developer";
 import { sendEmail, sendSMS, sendSecurityAlert } from "@/lib/notifications";
 import { hitRateLimit } from "@/lib/rate-limit";
+import { verifyCaptcha, getClientIp } from "@/lib/captcha";
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const step = String(body.step || "start");
     const email = String(body.email || "").trim().toLowerCase();
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+    const ip = getClientIp(req);
+    const captcha = await verifyCaptcha(body.captchaToken, ip);
+    if (!captcha.ok) {
+      return NextResponse.json({ error: captcha.error }, { status: 400 });
+    }
     const limited = hitRateLimit(`reset:${ip}:${email}`, 5, 60 * 60 * 1000);
     if (!limited.ok) {
       return NextResponse.json(

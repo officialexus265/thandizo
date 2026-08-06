@@ -76,7 +76,7 @@ export async function projectMoneySummary(projectId: string) {
       projectId,
       status: { in: ["SUCCESS", "PROCESSING", "PENDING"] },
     },
-    select: { amount: true, status: true },
+    select: { amount: true, grossAmount: true, status: true },
   });
 
   let collected = 0;
@@ -97,7 +97,8 @@ export async function projectMoneySummary(projectId: string) {
   let withdrawn = 0;
   let pendingWithdraw = 0;
   for (const w of withdrawals) {
-    const n = Number(w.amount);
+    // Prefer grossAmount (what left the available balance); fall back to amount
+    const n = Number(w.grossAmount) > 0 ? Number(w.grossAmount) : Number(w.amount);
     if (w.status === "SUCCESS") withdrawn += n;
     else pendingWithdraw += n;
   }

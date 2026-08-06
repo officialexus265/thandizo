@@ -3,7 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { ensureDeveloperWithCode } from "@/lib/developer";
 import { sendEmail, sendSMS, normalizePhone } from "@/lib/notifications";
 import bcrypt from "bcryptjs";
-import { hitRateLimit } from "@/lib/rate-limit";
+import { hitRateLimit, limitByIp } from "@/lib/rate-limit";
+import { verifyCaptcha, getClientIp } from "@/lib/captcha";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,8 +16,13 @@ export async function POST(req: NextRequest) {
     const securityQuestion = String(body.securityQuestion || "").trim();
     const securityAnswer = String(body.securityAnswer || "").trim();
 
-    const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
-    const byIp = hitRateLimit(`register:ip:${ip}`, 8, 60 * 60 * 1000);
+    const ip = getClientIp(req);
+    const captcha = await verifyCaptcha(body.captchaToken, ip);
+    if (!captcha.ok) {
+      return NextResponse.json({ error: captcha.error }, { status: 400 });
+    }
+
+    const byIp = limitByIp(ip, "register", 8, 60 * 60 * 1000);
     if (!byIp.ok) {
       return NextResponse.json(
         { error: "Too many sign-up attempts. Try again later.", retryAfterSeconds: byIp.retryAfterSeconds },

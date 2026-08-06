@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import Turnstile from "@/components/Turnstile";
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -18,6 +19,7 @@ function RegisterForm() {
     securityAnswer: "",
   });
   const [accessCode, setAccessCode] = useState("");
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +28,7 @@ function RegisterForm() {
       const res = await fetch("/api/developer/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, captchaToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Registration failed");
@@ -98,6 +100,7 @@ function RegisterForm() {
             />
           </div>
         ))}
+        <Turnstile onToken={setCaptchaToken} />
         <button
           type="submit"
           disabled={loading}

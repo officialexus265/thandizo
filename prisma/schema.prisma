@@ -31,6 +31,9 @@ model SiteSettings {
   adminWhatsapp String?
   callWindow   String?  // e.g. "Mon–Fri 9:00–12:00 CAT"
   largeTargetThreshold Float @default(500000) // MWK — above this always needs human review
+  /** Extra % taken when fundraiser withdraws (on top of donation platform fee) */
+  withdrawalFeePercent Float @default(0)
+  minWithdrawalAmount  Float @default(1000)
   donorDisclaimer String? @db.Text
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
@@ -359,13 +362,19 @@ model Withdrawal {
   project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   developerId  String
   developer    Developer        @relation(fields: [developerId], references: [id], onDelete: Cascade)
-  amount       Decimal          @db.Decimal(12, 2) // paid to owner
+  /** Gross amount deducted from available balance */
+  grossAmount  Decimal          @default(0) @db.Decimal(12, 2)
+  /** Platform withdrawal fee */
+  feeAmount    Decimal          @default(0) @db.Decimal(12, 2)
+  /** Net amount paid to mobile money (amount field kept for compatibility = net payout) */
+  amount       Decimal          @db.Decimal(12, 2)
   currency     String           @default("MWK")
   phone        String
   status       WithdrawalStatus @default(PENDING)
   payoutRef    String?
   payoutError  String?
   note         String?
+  ipAddress    String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt
   completedAt  DateTime?

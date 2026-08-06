@@ -18,6 +18,10 @@ export async function PUT(req: NextRequest) {
   try {
     const body = await req.json();
     let fee = body.refundFeePercent != null ? Number(body.refundFeePercent) : 10;
+    const withdrawalFeePercent =
+      body.withdrawalFeePercent != null ? Number(body.withdrawalFeePercent) : undefined;
+    const minWithdrawalAmount =
+      body.minWithdrawalAmount != null ? Number(body.minWithdrawalAmount) : undefined;
     if (isNaN(fee) || fee < 0) fee = 0;
     if (fee > 50) fee = 50;
 
@@ -28,6 +32,8 @@ export async function PUT(req: NextRequest) {
         contactEmail: body.contactEmail,
         logoUrl: body.logoUrl || null,
         refundFeePercent: fee,
+        ...(withdrawalFeePercent != null ? { withdrawalFeePercent } : {}),
+        ...(minWithdrawalAmount != null ? { minWithdrawalAmount } : {}),
         adminPhone: body.adminPhone || null,
         callWindow: body.callWindow || null,
       },
@@ -37,6 +43,8 @@ export async function PUT(req: NextRequest) {
         contactEmail: body.contactEmail || "",
         logoUrl: body.logoUrl || null,
         refundFeePercent: fee,
+        ...(withdrawalFeePercent != null ? { withdrawalFeePercent } : {}),
+        ...(minWithdrawalAmount != null ? { minWithdrawalAmount } : {}),
         adminPhone: body.adminPhone || null,
         callWindow: body.callWindow || null,
       },

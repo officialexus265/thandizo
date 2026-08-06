@@ -5,6 +5,9 @@ import { prisma } from "@/lib/prisma";
 import { projectMoneySummary } from "@/lib/developer";
 import { requestWithdrawal } from "@/lib/withdrawals";
 import { issueVerificationCode, consumeVerificationCode, RateLimitError } from "@/lib/otp";
+import { verifyCaptcha, getClientIp } from "@/lib/captcha";
+import { limitByIp } from "@/lib/rate-limit";
+import { getWithdrawalFeeSettings } from "@/lib/withdrawals";
 
 export async function GET(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -42,7 +45,8 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ withdrawals: list, money, developer });
+  const feeSettings = await getWithdrawalFeeSettings();
+  return NextResponse.json({ withdrawals: list, money, developer, feeSettings });
 }
 
 export async function POST(req: NextRequest) {
@@ -68,7 +72,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const ip = getClientIp(req);
+    const ipLimit = limitByIp(ip, "withdraw", 20, 60 * 60 * 1000);
+    if (!ipLimit.ok) {
+      return NextResponse.json(
+        { error: "Too many withdrawal attempts from this network.", retryAfterSeconds: ipLimit.retryAfterSeconds },
+        { status: 429 }
+      );
+    }
+
     if (action === "send-otp") {
+      const captcha = await verifyCaptcha(body.captchaToken, ip);
+      if (!captcha.ok) {
+        return NextResponse.json({ error: captcha.error }, { status: 400 });
+      }
       const phone = String(body.phone || developer.payoutPhone || developer.phone || "");
       if (!phone) return NextResponse.json({ error: "Phone required" }, { status: 400 });
       const issued = await issueVerificationCode({
@@ -104,11 +121,16 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Invalid or expired withdrawal OTP" }, { status: 400 });
       }
 
+      const captcha = await verifyCaptcha(body.captchaToken, ip);
+      if (!captcha.ok) {
+        return NextResponse.json({ error: captcha.error }, { status: 400 });
+      }
       const result = await requestWithdrawal({
         projectId,
         developerId,
         amount,
         phone,
+        ipAddress: ip,
       });
 
       return NextResponse.json({ success: true, withdrawal: result.withdrawal });
