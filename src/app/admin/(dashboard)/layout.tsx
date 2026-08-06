@@ -10,8 +10,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   if (!session) {
     redirect("/admin/login");
   }
-  if ((session.user as any)?.role === "developer") {
-    redirect("/developer");
+  // Strict: only role admin (not merely "not developer")
+  if ((session.user as any)?.role !== "admin") {
+    redirect("/admin/login");
   }
 
   return (

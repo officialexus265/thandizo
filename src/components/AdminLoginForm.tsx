@@ -36,7 +36,7 @@ export default function AdminLoginForm({ logoUrl, siteName = "thandizo" }: Props
           setNeeds2FA(true);
           toast.message("Enter your 2FA code");
         } else if (res.error?.includes("TOO_MANY")) {
-          toast.error("Too many attempts. Try again in 15 minutes.");
+          toast.error("Too many failed attempts. Locked for 15 minutes from this network.");
         } else {
           toast.error("Invalid credentials");
         }

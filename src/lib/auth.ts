@@ -4,7 +4,33 @@ import { prisma } from "./prisma";
 import bcrypt from "bcryptjs";
 import { authenticator } from "otplib";
 import { verifyAccessCode } from "./developer";
-import { hitRateLimit } from "./rate-limit";
+import {
+  checkRateLimit,
+  recordRateLimitHit,
+  hitRateLimit,
+  delayMs,
+} from "./rate-limit";
+
+const ADMIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const ADMIN_MAX_FAILS_IP = 5;
+const ADMIN_MAX_FAILS_EMAIL = 8;
+
+function clientIpFromReq(req: any): string {
+  try {
+    const h = req?.headers;
+    if (!h) return "unknown";
+    if (typeof h.get === "function") {
+      const xf = h.get("x-forwarded-for");
+      if (xf) return String(xf).split(",")[0].trim();
+      return h.get("x-real-ip") || h.get("cf-connecting-ip") || "unknown";
+    }
+    const xf = h["x-forwarded-for"];
+    if (xf) return String(xf).split(",")[0].trim();
+    return String(h["x-real-ip"] || h["cf-connecting-ip"] || "unknown");
+  } catch {
+    return "unknown";
+  }
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -21,19 +47,20 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // IP rate limit — stop credential stuffing on /admin/login
-        const ip =
-          (req as any)?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim() ||
-          (req as any)?.headers?.["x-real-ip"]?.toString() ||
-          "unknown";
-        const limited = hitRateLimit(`admin-login:${ip}`, 8, 15 * 60 * 1000);
-        if (!limited.ok) {
+        const ip = clientIpFromReq(req);
+        const emailKey = credentials.email.trim().toLowerCase();
+        const ipKey = `admin-fail-ip:${ip}`;
+        const emailFailKey = `admin-fail-email:${emailKey}`;
+
+        // Block if already over limit (failed attempts only)
+        const ipBlocked = checkRateLimit(ipKey, ADMIN_MAX_FAILS_IP);
+        if (!ipBlocked.ok) {
+          await delayMs(800);
           throw new Error("TOO_MANY_ATTEMPTS");
         }
-        // Also limit per email
-        const emailKey = credentials.email.trim().toLowerCase();
-        const emailLimited = hitRateLimit(`admin-login-email:${emailKey}`, 10, 15 * 60 * 1000);
-        if (!emailLimited.ok) {
+        const emailBlocked = checkRateLimit(emailFailKey, ADMIN_MAX_FAILS_EMAIL);
+        if (!emailBlocked.ok) {
+          await delayMs(800);
           throw new Error("TOO_MANY_ATTEMPTS");
         }
 
@@ -41,14 +68,26 @@ export const authOptions: NextAuthOptions = {
           where: { email: emailKey },
         });
 
-        // Constant-ish failure: always same outcome message upstream
-        if (!admin) return null;
+        const fail = async () => {
+          recordRateLimitHit(ipKey, ADMIN_WINDOW_MS);
+          recordRateLimitHit(emailFailKey, ADMIN_WINDOW_MS);
+          // Slow down brute force
+          await delayMs(600 + Math.floor(Math.random() * 400));
+          return null;
+        };
+
+        if (!admin) {
+          return fail();
+        }
 
         const valid = await bcrypt.compare(credentials.password, admin.passwordHash);
-        if (!valid) return null;
+        if (!valid) {
+          return fail();
+        }
 
         if (admin.twoFactorEnabled) {
           if (!credentials.token || !admin.twoFactorSecret) {
+            // Don't count as full failure for missing 2FA step mid-flow
             throw new Error("2FA_REQUIRED");
           }
           const isValidToken = authenticator.verify({
@@ -56,6 +95,9 @@ export const authOptions: NextAuthOptions = {
             secret: admin.twoFactorSecret,
           });
           if (!isValidToken) {
+            recordRateLimitHit(ipKey, ADMIN_WINDOW_MS);
+            recordRateLimitHit(emailFailKey, ADMIN_WINDOW_MS);
+            await delayMs(500);
             throw new Error("INVALID_2FA");
           }
         }
@@ -83,24 +125,27 @@ export const authOptions: NextAuthOptions = {
         const accessCode = credentials.accessCode?.trim() || "";
         if (!password && !accessCode) return null;
 
-        const ip =
-          (req as any)?.headers?.["x-forwarded-for"]?.toString()?.split(",")[0]?.trim() ||
-          "unknown";
+        const ip = clientIpFromReq(req);
         const limited = hitRateLimit(`dev-login:${ip}`, 20, 15 * 60 * 1000);
         if (!limited.ok) throw new Error("TOO_MANY_ATTEMPTS");
 
         const developer = await prisma.developer.findUnique({ where: { email } });
-        if (!developer || developer.bannedAt) return null;
+        if (!developer || developer.bannedAt) {
+          await delayMs(400);
+          return null;
+        }
 
         let ok = false;
-        // Prefer password when both sent; accept either
         if (password && developer.passwordHash) {
           ok = await bcrypt.compare(password, developer.passwordHash);
         }
         if (!ok && accessCode) {
           ok = await verifyAccessCode(accessCode, developer.accessCodeHash);
         }
-        if (!ok) return null;
+        if (!ok) {
+          await delayMs(400);
+          return null;
+        }
 
         return {
           id: developer.id,
@@ -113,7 +158,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: {
     strategy: "jwt",
-    maxAge: 8 * 60 * 60, // 8 hours
+    maxAge: 8 * 60 * 60,
   },
   pages: {
     signIn: "/admin/login",
