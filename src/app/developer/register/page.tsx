@@ -2,11 +2,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 export default function DeveloperRegisterPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get("next") || "/developer";
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     name: "",
@@ -53,10 +55,10 @@ export default function DeveloperRegisterPage() {
             <li>Sign in with email + access code</li>
             <li>Verify email & phone (Security)</li>
             <li>Complete KYC (required before any campaign)</li>
-            <li>After KYC approval, submit or manage projects</li>
+            <li>After KYC approval, submit your project</li>
           </ol>
           <Link
-            href="/developer/login"
+            href={`/developer/login?next=${encodeURIComponent(nextPath)}`}
             className="block text-center py-2.5 rounded-lg bg-stone-900 text-white text-sm font-medium"
           >
             Go to sign in

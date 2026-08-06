@@ -15,7 +15,7 @@ const links = [
   { href: "/", label: "Projects" },
   { href: "/donations", label: "Donations" },
   { href: "/search", label: "Search" },
-  { href: "/submit", label: "Submit project" },
+  { href: "/developer/register", label: "Submit project" },
   { href: "/legal", label: "Trust" },
 ];
 
